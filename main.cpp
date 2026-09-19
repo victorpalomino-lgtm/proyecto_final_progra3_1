@@ -5,18 +5,11 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <iomanip>
+#include "RawMovie.h"
+#include "DataCleaner.h"
+#include "CSVWriter.h"
+#include <filesystem>
 
-// Estructura para el Integrante 2
-struct RawMovie {
-    std::string releaseYear;
-    std::string title;
-    std::string origin;
-    std::string director;
-    std::string cast;
-    std::string genre;
-    std::string wikiPage;
-    std::string plot;
-};
 
 // Contenedor de metricas para el diagnostico
 struct DiagnosticReport {
@@ -208,18 +201,58 @@ public:
     }
 };
 
-int main() {
-    DiagnosticReport report;
-    std::string csvPath= "wiki_movie_plots_deduped.csv";
+// Mantener la ejecucion desde la raiz o desde un directorio de build hijo.
+std::filesystem::path locateDataFile(const std::filesystem::path& path) {
+    if (std::filesystem::exists(path)) return path;
+    const auto alternative = std::filesystem::path("..") / path;
+    return std::filesystem::exists(alternative) ? alternative : path;
+}
 
-    std::cout << "Procesando dataset y ejecutando diagnostico..." << std::endl;
-    std::vector<RawMovie> movies= CSVReaderDiagnostic::processFile(csvPath, report);
-
-    if (!movies.empty()) {
-        CSVReaderDiagnostic::printReport(report);
-        std::cout << "Exito: Se estructuraron " << movies.size()
-        << " registros crudos para la etapa de limpieza." <<std::endl;
+int main(int argc, char* argv[]) {
+    const bool rebuild = argc == 2 && std::string(argv[1]) == "--rebuild-clean";
+    if (argc > 1 && !rebuild) {
+        std::cerr << "Uso: " << argv[0] << " [--rebuild-clean]\n";
+        return 1;
     }
+    try {
+        DiagnosticReport report;
+        auto cleanPath = locateDataFile("data/movies_clean.csv");
+        if (!rebuild && std::filesystem::exists(cleanPath)) {
+            auto movies = CSVReaderDiagnostic::processFile(cleanPath.string(), report);
+            if (movies.empty() || report.malformedRows != 0) {
+                std::cerr << "CSV limpio vacio o con filas inconsistentes. "
+                             "Regeneralo con --rebuild-clean.\n";
+                return 1;
+            }
+            std::cout << "CSV limpio cargado: " << cleanPath.string() << '\n'
+                      << "Registros listos para el arbol: " << movies.size() << '\n'
+                      << "Se reutilizo el archivo; no se repitio la limpieza.\n";
+            return 0;
+        }
+        const auto csvPath = locateDataFile("data/wiki_movie_plots_deduped.csv");
+        cleanPath = csvPath.parent_path() / "movies_clean.csv";
 
-    return 0;
+        std::cout << "Procesando dataset y ejecutando diagnostico..." << std::endl;
+        std::vector<RawMovie> movies= CSVReaderDiagnostic::processFile(csvPath.string(), report);
+
+        if (movies.empty()) return 1;
+
+        if (!movies.empty()) {
+            CSVReaderDiagnostic::printReport(report);
+            std::cout << "Exito: Se estructuraron " << movies.size()
+            << " registros crudos para la etapa de limpieza." <<std::endl;
+            const auto preprocessing = DataCleaner::clean(movies);
+            DataCleaner::printReport(preprocessing, std::cout);
+            CSVWriter::writeFile(cleanPath, movies);
+            std::cout << "CSV limpio guardado en: " << cleanPath.string() << '\n';
+            // El futuro arbol puede asociar normalizeForSearch(movie.title) con su registro.
+            std::cout << "Ejemplo de titulo para busqueda: "
+                      << DataCleaner::normalizeForSearch(movies.front().title) << '\n';
+        }
+
+        return 0;
+    } catch (const std::exception& error) {
+        std::cerr << "Error: " << error.what() << '\n';
+        return 1;
+    }
 }
