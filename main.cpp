@@ -9,6 +9,7 @@
 #include "DataCleaner.h"
 #include "CSVWriter.h"
 #include <filesystem>
+#include "MovieTrie(arbol).h"
 
 
 // Contenedor de metricas para el diagnostico
@@ -227,6 +228,18 @@ int main(int argc, char* argv[]) {
             std::cout << "CSV limpio cargado: " << cleanPath.string() << '\n'
                       << "Registros listos para el arbol: " << movies.size() << '\n'
                       << "Se reutilizo el archivo; no se repitio la limpieza.\n";
+
+            //el arbol-----------------------------------------------------------------------
+            MovieTrie trie;
+            std::cout << "Construyendo el indice en el arbol..." << std::endl;
+            trie.buildIndex(movies);
+            std::cout << "¡Se logro construir el arbol!" << std::endl;
+
+            //Prueba de búsqueda rápida
+            std::string busqueda = "barco";
+            auto resultados = trie.searchSubstring(busqueda);
+            std::cout << "Se encontraron " << resultados.size() << " peliculas con la subcadena '" << busqueda << "'.\n";
+
             return 0;
         }
         const auto csvPath = locateDataFile("data/wiki_movie_plots_deduped.csv");
@@ -249,6 +262,16 @@ int main(int argc, char* argv[]) {
             std::cout << "Ejemplo de titulo para busqueda: "
                       << DataCleaner::normalizeForSearch(movies.front().title) << '\n';
         }
+        //el arbol-------------------------------------------------------
+        MovieTrie trie;
+        std::cout << "Construyendo el indice en el arbol..." << std::endl;
+        trie.buildIndex(movies);
+        std::cout << "¡Se logro construir el arbol!" << std::endl;
+
+        //Prueba de búsqueda rápida
+        std::string busqueda = "barco";
+        auto resultados = trie.searchSubstring(busqueda);
+        std::cout << "Se encontraron " << resultados.size() << " peliculas con la subcadena '" << busqueda << "'.\n";
 
         return 0;
     } catch (const std::exception& error) {
