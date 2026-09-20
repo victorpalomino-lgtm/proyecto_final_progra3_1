@@ -10,6 +10,9 @@
 #include "CSVWriter.h"
 #include <filesystem>
 #include "MovieTrie(arbol).h"
+#include "Interfaz.h"
+#include "Utilidades.h"
+#include <cstdlib>
 
 
 // Contenedor de metricas para el diagnostico
@@ -209,73 +212,97 @@ std::filesystem::path locateDataFile(const std::filesystem::path& path) {
     return std::filesystem::exists(alternative) ? alternative : path;
 }
 
+// CSV - limpieza - arbol - busqueda - resultados
 int main(int argc, char* argv[]) {
-    const bool rebuild = argc == 2 && std::string(argv[1]) == "--rebuild-clean";
-    if (argc > 1 && !rebuild) {
-        std::cerr << "Uso: " << argv[0] << " [--rebuild-clean]\n";
-        return 1;
-    }
-    try {
-        DiagnosticReport report;
-        auto cleanPath = locateDataFile("data/movies_clean.csv");
-        if (!rebuild && std::filesystem::exists(cleanPath)) {
-            auto movies = CSVReaderDiagnostic::processFile(cleanPath.string(), report);
-            if (movies.empty() || report.malformedRows != 0) {
-                std::cerr << "CSV limpio vacio o con filas inconsistentes. "
-                             "Regeneralo con --rebuild-clean.\n";
+    bool rebuild = false;
+    size_t limite = 0; // 0 significa usar todas las peliculas
+
+    for (int i = 1; i < argc; i++) {
+        std::string argumento = argv[i];
+        if (argumento == "--rebuild-clean") {
+            rebuild = true;
+        } else if (argumento == "--limite" && i + 1 < argc) {
+            try {
+                limite = std::stoul(argv[i + 1]);
+            } catch (const std::exception&) {
+                limite = 0;
+            }
+            if (limite == 0) {
+                std::cerr << "--limite necesita un numero mayor que 0." << std::endl;
                 return 1;
             }
-            std::cout << "CSV limpio cargado: " << cleanPath.string() << '\n'
-                      << "Registros listos para el arbol: " << movies.size() << '\n'
-                      << "Se reutilizo el archivo; no se repitio la limpieza.\n";
-
-            //el arbol-----------------------------------------------------------------------
-            MovieTrie trie;
-            std::cout << "Construyendo el indice en el arbol..." << std::endl;
-            trie.buildIndex(movies);
-            std::cout << "¡Se logro construir el arbol!" << std::endl;
-
-            //Prueba de búsqueda rápida
-            std::string busqueda = "barco";
-            auto resultados = trie.searchSubstring(busqueda);
-            std::cout << "Se encontraron " << resultados.size() << " peliculas con la subcadena '" << busqueda << "'.\n";
-
-            return 0;
+            i++;
+        } else {
+            std::cerr << "Uso: " << argv[0] << " [--rebuild-clean] [--limite N]" << std::endl;
+            return 1;
         }
-        const auto csvPath = locateDataFile("data/wiki_movie_plots_deduped.csv");
-        cleanPath = csvPath.parent_path() / "movies_clean.csv";
+    }
 
-        std::cout << "Procesando dataset y ejecutando diagnostico..." << std::endl;
-        std::vector<RawMovie> movies= CSVReaderDiagnostic::processFile(csvPath.string(), report);
+    Interfaz::prepararConsola();
+    Interfaz::limpiarPantalla();
+    Interfaz::mostrarCabecera();
+    std::cout << " Cargando la base de datos..." << std::endl;
+    std::cout << std::endl;
 
-        if (movies.empty()) return 1;
+    try {
+        DiagnosticReport report;
+        std::vector<RawMovie> movies;
+        Cronometro reloj;
+        auto cleanPath = locateDataFile("data/movies_clean.csv");
 
-        if (!movies.empty()) {
+        if (!rebuild && std::filesystem::exists(cleanPath)) {
+            movies = CSVReaderDiagnostic::processFile(cleanPath.string(), report);
+            if (movies.empty() || report.malformedRows != 0) {
+                std::cerr << "CSV limpio vacio o con filas inconsistentes. "
+                        "Regeneralo con --rebuild-clean." << std::endl;
+                return 1;
+            }
+            Interfaz::mostrarEtapa("[1/3] Lectura del CSV",
+                                std::to_string(movies.size()) + " peliculas (" + reloj.texto() + ")");
+
+            Interfaz::mostrarEtapa("[2/3] Limpieza", "ya aplicada, se usa " + cleanPath.string());
+        } else {
+            const auto csvPath = locateDataFile("data/wiki_movie_plots_deduped.csv");
+            cleanPath = csvPath.parent_path() / "movies_clean.csv";
+
+            movies = CSVReaderDiagnostic::processFile(csvPath.string(), report);
+            if (movies.empty()) {
+                return 1;
+            }
+            Interfaz::mostrarEtapa("[1/3] Lectura del CSV original",
+                                std::to_string(movies.size()) + " registros (" + reloj.texto() + ")");
             CSVReaderDiagnostic::printReport(report);
-            std::cout << "Exito: Se estructuraron " << movies.size()
-            << " registros crudos para la etapa de limpieza." <<std::endl;
+
+            // 2) Limpieza y guardado del CSV limpio (Integrante 2)
+            reloj.reiniciar();
             const auto preprocessing = DataCleaner::clean(movies);
-            DataCleaner::printReport(preprocessing, std::cout);
             CSVWriter::writeFile(cleanPath, movies);
-            std::cout << "CSV limpio guardado en: " << cleanPath.string() << '\n';
-            // El futuro arbol puede asociar normalizeForSearch(movie.title) con su registro.
-            std::cout << "Ejemplo de titulo para busqueda: "
-                      << DataCleaner::normalizeForSearch(movies.front().title) << '\n';
+            Interfaz::mostrarEtapa("[2/3] Limpieza",
+                                std::to_string(preprocessing.processedRecords) + " registros limpios ("
+                                + reloj.texto() + ")");
+            DataCleaner::printReport(preprocessing, std::cout);
+            std::cout << "CSV limpio guardado en: " << cleanPath.string() << std::endl;
+            std::cout << std::endl;
         }
-        //el arbol-------------------------------------------------------
+
+        // Opcion para hacer pruebas rapidas con menos peliculas
+        if (limite > 0 && limite < movies.size()) {
+            movies.resize(limite);
+            std::cout << " Aviso: solo se usan las primeras " << limite << " peliculas (--limite)." << std::endl;
+        }
+
         MovieTrie trie;
-        std::cout << "Construyendo el indice en el arbol..." << std::endl;
-        trie.buildIndex(movies);
-        std::cout << "¡Se logro construir el arbol!" << std::endl;
+        if (!Interfaz::construirArbol(trie, movies)) {
+            std::exit(1);
+        }
 
-        //Prueba de búsqueda rápida
-        std::string busqueda = "barco";
-        auto resultados = trie.searchSubstring(busqueda);
-        std::cout << "Se encontraron " << resultados.size() << " peliculas con la subcadena '" << busqueda << "'.\n";
-
+        std::cout << std::endl;
+        Interfaz::pausa(" Todo listo. Presione Enter para ir al menu principal...");
+        Interfaz interfaz(movies, trie);
+        interfaz.ejecutar();
         return 0;
     } catch (const std::exception& error) {
-        std::cerr << "Error: " << error.what() << '\n';
+        std::cerr << "Error: " << error.what() << std::endl;
         return 1;
     }
 }
