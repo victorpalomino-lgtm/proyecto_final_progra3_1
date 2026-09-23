@@ -64,7 +64,9 @@ int main() {
                 barcos[2].pelicula->title == "Blue Sky", "Primero las que tienen el texto en el titulo");
         require(BusquedaTexto("SHIP").ejecutar(arbol, peliculas).size() == 3, "No distinguir mayusculas");
         require(BusquedaTexto("arb").ejecutar(arbol, peliculas).size() == 1, "Buscar parte de una palabra");
-        require(BusquedaTexto("ghost ship").ejecutar(arbol, peliculas).size() == 1, "Buscar una frase");
+        require(BusquedaTexto("ghost ship").ejecutar(arbol, peliculas).size() == 3, "Buscar una frase por palabras");
+        require(BusquedaTexto("ghost pirates").ejecutar(arbol, peliculas).size() == 2,
+                "Una frase busca por cualquiera de sus palabras");
         require(BusquedaTexto("zzz").ejecutar(arbol, peliculas).empty(), "Busqueda sin resultados");
         require(BusquedaTexto("ford").ejecutar(arbol, peliculas).size() == 2, "Texto en cualquier campo");
 

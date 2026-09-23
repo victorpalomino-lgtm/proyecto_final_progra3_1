@@ -3,12 +3,101 @@
 #include "Utilidades.h"
 
 #include <algorithm>
+#include <sstream>
 #include <unordered_set>
 
 const size_t ANCHO_TITULO = 40;
 const size_t ANCHO_DIRECTOR = 18;
 const size_t ANCHO_GENERO = 12;
 
+namespace {
+std::vector<std::string> separarTerminos(const std::string& textoNormalizado) {
+    std::vector<std::string> terminos;
+    std::istringstream entrada(textoNormalizado);
+    std::string termino;
+
+    while (entrada >> termino) {
+        bool repetido = false;
+        for (const std::string& guardado : terminos) {
+            if (guardado == termino) {
+                repetido = true;
+                break;
+            }
+        }
+        if (!repetido) {
+            terminos.push_back(termino);
+        }
+    }
+    return terminos;
+}
+
+bool contiene(const std::string& campo, const std::string& texto) {
+    return !texto.empty() && campo.find(texto) != std::string::npos;
+}
+
+int sumarCampo(const std::string& campo, const std::string& frase,
+               const std::vector<std::string>& terminos, int peso) {
+    int puntaje = 0;
+    if (contiene(campo, frase)) {
+        puntaje += peso * 4;
+    }
+    for (const std::string& termino : terminos) {
+        if (contiene(campo, termino)) {
+            puntaje += peso;
+        }
+    }
+    return puntaje;
+}
+
+int puntajeTexto(const RawMovie& pelicula, const std::string& frase,
+                 const std::vector<std::string>& terminos) {
+    std::string titulo = DataCleaner::normalizeForSearch(pelicula.title);
+    std::string director = DataCleaner::normalizeForSearch(pelicula.director);
+    std::string reparto = DataCleaner::normalizeForSearch(pelicula.cast);
+    std::string genero = DataCleaner::normalizeForSearch(pelicula.genre);
+    std::string sinopsis = DataCleaner::normalizeForSearch(pelicula.plot);
+
+    int puntaje = 0;
+    if (titulo == frase) {
+        puntaje += 200;
+    }
+    puntaje += sumarCampo(titulo, frase, terminos, 40);
+    puntaje += sumarCampo(director, frase, terminos, 18);
+    puntaje += sumarCampo(genero, frase, terminos, 14);
+    puntaje += sumarCampo(reparto, frase, terminos, 12);
+    puntaje += sumarCampo(sinopsis, frase, terminos, 5);
+
+    bool encontroTodos = !terminos.empty();
+    for (const std::string& termino : terminos) {
+        bool aparece = contiene(titulo, termino) || contiene(director, termino) ||
+                       contiene(genero, termino) || contiene(reparto, termino) ||
+                       contiene(sinopsis, termino);
+        if (!aparece) {
+            encontroTodos = false;
+            break;
+        }
+    }
+    if (encontroTodos) {
+        puntaje += 20;
+    }
+    return puntaje;
+}
+
+int puntajeCampo(const std::string& valor, const std::string& frase,
+                 const std::vector<std::string>& terminos) {
+    std::string campo = DataCleaner::normalizeForSearch(valor);
+    int puntaje = 0;
+    if (contiene(campo, frase)) {
+        puntaje += 40;
+    }
+    for (const std::string& termino : terminos) {
+        if (contiene(campo, termino)) {
+            puntaje += 10;
+        }
+    }
+    return puntaje;
+}
+}
 
 bool Resultado::operator<(const Resultado& otro) const {
     if (prioridad != otro.prioridad) {
@@ -65,20 +154,27 @@ BusquedaTexto::BusquedaTexto(const std::string& texto) : Busqueda(texto) {
 // Complejidad aproximada: O(m) para bajar por el arbol
 std::vector<Resultado> BusquedaTexto::ejecutar(const MovieTrie& arbol, const std::vector<RawMovie>& peliculas) const {
     std::vector<Resultado> resultados;
+    std::vector<std::string> terminos = separarTerminos(textoNormalizado);
+    if (terminos.empty()) {
+        return resultados;
+    }
 
-    // El arbol devuelve los ids de las peliculas que contienen el texto
-    std::unordered_set<size_t> ids = arbol.searchSubstring(texto);
-    resultados.reserve(ids.size());
+    // Frases: busqueda por palabras.
+    std::unordered_set<size_t> ids = arbol.searchSubstring(textoNormalizado);
+    for (const std::string& termino : terminos) {
+        std::unordered_set<size_t> candidatos = arbol.searchSubstring(termino);
+        ids.insert(candidatos.begin(), candidatos.end());
+    }
 
     for (size_t id : ids) {
         if (id >= peliculas.size()) {
-            continue; // por seguridad, no deberia pasar
+            continue;
         }
         Resultado resultado = crearResultado(id, peliculas[id]);
-        if (resultado.tituloOrden.find(textoNormalizado) != std::string::npos) {
-            resultado.prioridad = 1;
+        resultado.prioridad = puntajeTexto(peliculas[id], textoNormalizado, terminos);
+        if (resultado.prioridad > 0) {
+            resultados.push_back(resultado);
         }
-        resultados.push_back(resultado);
     }
 
     std::sort(resultados.begin(), resultados.end()); // usa Resultado::operator<
@@ -112,16 +208,26 @@ const std::string& BusquedaTag::valorCampo(const RawMovie& pelicula) const {
 
 std::vector<Resultado> BusquedaTag::ejecutar(const MovieTrie& arbol, const std::vector<RawMovie>& peliculas) const {
     std::vector<Resultado> resultados;
-    std::unordered_set<size_t> candidatos = arbol.searchSubstring(texto);
+    std::vector<std::string> terminos = separarTerminos(textoNormalizado);
+    if (terminos.empty()) {
+        return resultados;
+    }
+
+    std::unordered_set<size_t> candidatos = arbol.searchSubstring(textoNormalizado);
+    for (const std::string& termino : terminos) {
+        std::unordered_set<size_t> ids = arbol.searchSubstring(termino);
+        candidatos.insert(ids.begin(), ids.end());
+    }
 
     for (size_t id : candidatos) {
         if (id >= peliculas.size()) {
             continue;
         }
         const RawMovie& pelicula = peliculas[id];
-        std::string valor = DataCleaner::normalizeForSearch(valorCampo(pelicula));
-        if (valor.find(textoNormalizado) != std::string::npos) {
-            resultados.push_back(crearResultado(id, pelicula));
+        Resultado resultado = crearResultado(id, pelicula);
+        resultado.prioridad = puntajeCampo(valorCampo(pelicula), textoNormalizado, terminos);
+        if (resultado.prioridad > 0) {
+            resultados.push_back(resultado);
         }
     }
 

@@ -9,25 +9,31 @@ MovieTrie::~MovieTrie() {
     delete root;
 }
 
-void MovieTrie::insertSuffix(const std::string& text, size_t movieId) {
+void MovieTrie::insertKey(const std::string& text, size_t movieId) {
     TrieNode* current = root;
     for (char c : text) {
         if (current->children.find(c) == current->children.end()) {
             current->children[c] = new TrieNode();
         }
         current = current->children[c];
-        current->movieIds.insert(movieId); // Registra que esta película pasa por este nodo
+        current->movieIds.insert(movieId);
     }
+}
+
+std::string MovieTrie::keyFromQuery(const std::string& text) {
+    if (text.size() <= KEY_SIZE) {
+        return text;
+    }
+    return text.substr(0, KEY_SIZE);
 }
 
 void MovieTrie::indexText(const std::string& text, size_t movieId) {
     std::string cleanText = DataCleaner::normalizeForSearch(text);
     if (cleanText.empty()) return;
 
-    // Para buscar las subcadenas, insertamoslos sufijos.
+    // Indice liviano de subcadenas.
     for (size_t i = 0; i < cleanText.size(); ++i) {
-        // Insertamos la subcadena desde la posición 'i' en adelante
-        insertSuffix(cleanText.substr(i), movieId);
+        insertKey(cleanText.substr(i, KEY_SIZE), movieId);
     }
 }
 
@@ -45,17 +51,17 @@ void MovieTrie::buildIndex(const std::vector<RawMovie>& movies) {
 }
 
 std::unordered_set<size_t> MovieTrie::searchSubstring(const std::string& query) const {
-    std::string cleanQuery = DataCleaner::normalizeForSearch(query);
+    std::string cleanQuery = keyFromQuery(DataCleaner::normalizeForSearch(query));
+    if (cleanQuery.empty()) return {};
     TrieNode* current = root;
 
     for (char c : cleanQuery) {
         auto it = current->children.find(c);
         if (it == current->children.end()) {
-            return {}; // No existe la subcadena en ninguna película
+            return {};
         }
         current = it->second;
     }
 
-    //Todos los IDs de películas que tienen la secuencia
     return current->movieIds;
 }

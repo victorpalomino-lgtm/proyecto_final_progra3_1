@@ -30,9 +30,11 @@ struct TrieNode {
 class MovieTrie {
 private:
     TrieNode* root;
+    static constexpr size_t KEY_SIZE = 3;
 
-    // Inserta una cadena exacta comenzando desde un nodo raíz específico
-    void insertSuffix(const std::string& text, size_t movieId);
+    // Clave corta para candidatos.
+    void insertKey(const std::string& text, size_t movieId);
+    static std::string keyFromQuery(const std::string& text);
 
 public:
     MovieTrie();
@@ -41,9 +43,9 @@ public:
     //Indexamos todo el dataset de peliculas
     void buildIndex(const std::vector<RawMovie>& movies);
 
-    //Inserta todos los sufijos
+    // Claves de subcadenas.
     void indexText(const std::string& text, size_t movieId);
 
-    //Búsqueda rápida que retorna los IDs
+    // IDs candidatos para la busqueda.
     std::unordered_set<size_t> searchSubstring(const std::string& query) const;
 };
