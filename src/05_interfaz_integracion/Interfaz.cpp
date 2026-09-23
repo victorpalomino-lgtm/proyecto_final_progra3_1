@@ -1,5 +1,5 @@
-#include "Interfaz.h"
-#include "Utilidades.h"
+#include "05_interfaz_integracion/Interfaz.h"
+#include "comun/Utilidades.h"
 
 #include <atomic>
 #include <chrono>
@@ -185,6 +185,7 @@ void Interfaz::pantallaBusquedaTexto() {
     mostrarLinea('-');
     std::cout << " Puede escribir una palabra (ship), una frase (ghost ship)" << std::endl;
     std::cout << " o solo una parte de una palabra (bar)." << std::endl;
+    std::cout << " Las frases se buscan completas y en el mismo orden." << std::endl;
     std::cout << " Las sinopsis estan en ingles, por eso conviene buscar en ingles." << std::endl;
     std::cout << " Deje el texto vacio y presione Enter para volver al menu." << std::endl;
     mostrarLinea('-');

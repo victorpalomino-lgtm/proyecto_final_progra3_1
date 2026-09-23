@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include "RawMovie.h"
+#include "comun/RawMovie.h"
 
 enum class FieldType {
     TITLE,
@@ -39,6 +39,8 @@ private:
 public:
     MovieTrie();
     ~MovieTrie();
+    MovieTrie(const MovieTrie&) = delete;
+    MovieTrie& operator=(const MovieTrie&) = delete;
 
     //Indexamos todo el dataset de peliculas
     void buildIndex(const std::vector<RawMovie>& movies);

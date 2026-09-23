@@ -1,5 +1,5 @@
-#include "MovieTrie(arbol).h"
-#include "DataCleaner.h"
+#include "03_arbol_insercion/MovieTrie(arbol).h"
+#include "02_limpieza_normalizacion/DataCleaner.h"
 
 MovieTrie::MovieTrie() {
     root = new TrieNode();
@@ -38,6 +38,9 @@ void MovieTrie::indexText(const std::string& text, size_t movieId) {
 }
 
 void MovieTrie::buildIndex(const std::vector<RawMovie>& movies) {
+    auto* replacement = new TrieNode();
+    delete root;
+    root = replacement;
     for (size_t id = 0; id < movies.size(); ++id) {
         const auto& movie = movies[id];
 

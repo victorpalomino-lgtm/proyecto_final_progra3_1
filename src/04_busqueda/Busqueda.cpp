@@ -1,6 +1,6 @@
-#include "Busqueda.h"
-#include "DataCleaner.h"
-#include "Utilidades.h"
+#include "04_busqueda/Busqueda.h"
+#include "02_limpieza_normalizacion/DataCleaner.h"
+#include "comun/Utilidades.h"
 
 #include <algorithm>
 #include <sstream>
@@ -151,7 +151,7 @@ const std::string& Busqueda::getTexto() const {
 BusquedaTexto::BusquedaTexto(const std::string& texto) : Busqueda(texto) {
 }
 
-// Complejidad aproximada: O(m) para bajar por el arbol
+// Trie: O(min(m,3) + candidatos), ademas de normalizacion, confirmacion y ordenamiento.
 std::vector<Resultado> BusquedaTexto::ejecutar(const MovieTrie& arbol, const std::vector<RawMovie>& peliculas) const {
     std::vector<Resultado> resultados;
     std::vector<std::string> terminos = separarTerminos(textoNormalizado);
@@ -159,17 +159,23 @@ std::vector<Resultado> BusquedaTexto::ejecutar(const MovieTrie& arbol, const std
         return resultados;
     }
 
-    // Frases: busqueda por palabras.
-    std::unordered_set<size_t> ids = arbol.searchSubstring(textoNormalizado);
-    for (const std::string& termino : terminos) {
-        std::unordered_set<size_t> candidatos = arbol.searchSubstring(termino);
-        ids.insert(candidatos.begin(), candidatos.end());
-    }
+    // La consulta completa debe aparecer de forma contigua en un campo.
+    const auto ids = arbol.searchSubstring(textoNormalizado);
 
     for (size_t id : ids) {
         if (id >= peliculas.size()) {
             continue;
         }
+        const auto& pelicula = peliculas[id];
+        bool coincide = false;
+        for (const auto* campo : {&pelicula.title, &pelicula.plot, &pelicula.director,
+                                  &pelicula.cast, &pelicula.genre}) {
+            if (contiene(DataCleaner::normalizeForSearch(*campo), textoNormalizado)) {
+                coincide = true;
+                break;
+            }
+        }
+        if (!coincide) continue;
         Resultado resultado = crearResultado(id, peliculas[id]);
         resultado.prioridad = puntajeTexto(peliculas[id], textoNormalizado, terminos);
         if (resultado.prioridad > 0) {
@@ -213,17 +219,14 @@ std::vector<Resultado> BusquedaTag::ejecutar(const MovieTrie& arbol, const std::
         return resultados;
     }
 
-    std::unordered_set<size_t> candidatos = arbol.searchSubstring(textoNormalizado);
-    for (const std::string& termino : terminos) {
-        std::unordered_set<size_t> ids = arbol.searchSubstring(termino);
-        candidatos.insert(ids.begin(), ids.end());
-    }
+    const auto candidatos = arbol.searchSubstring(textoNormalizado);
 
     for (size_t id : candidatos) {
         if (id >= peliculas.size()) {
             continue;
         }
         const RawMovie& pelicula = peliculas[id];
+        if (!contiene(DataCleaner::normalizeForSearch(valorCampo(pelicula)), textoNormalizado)) continue;
         Resultado resultado = crearResultado(id, pelicula);
         resultado.prioridad = puntajeCampo(valorCampo(pelicula), textoNormalizado, terminos);
         if (resultado.prioridad > 0) {

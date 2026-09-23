@@ -1,5 +1,5 @@
-#include "Busqueda.h"
-#include "Utilidades.h"
+#include "04_busqueda/Busqueda.h"
+#include "comun/Utilidades.h"
 
 #include <iostream>
 #include <memory>
@@ -64,9 +64,9 @@ int main() {
                 barcos[2].pelicula->title == "Blue Sky", "Primero las que tienen el texto en el titulo");
         require(BusquedaTexto("SHIP").ejecutar(arbol, peliculas).size() == 3, "No distinguir mayusculas");
         require(BusquedaTexto("arb").ejecutar(arbol, peliculas).size() == 1, "Buscar parte de una palabra");
-        require(BusquedaTexto("ghost ship").ejecutar(arbol, peliculas).size() == 3, "Buscar una frase por palabras");
-        require(BusquedaTexto("ghost pirates").ejecutar(arbol, peliculas).size() == 2,
-                "Una frase busca por cualquiera de sus palabras");
+        require(BusquedaTexto("ghost ship").ejecutar(arbol, peliculas).size() == 1, "Buscar una frase contigua");
+        require(BusquedaTexto("ghost pirates").ejecutar(arbol, peliculas).empty(),
+                "No aceptar palabras separadas como frase");
         require(BusquedaTexto("zzz").ejecutar(arbol, peliculas).empty(), "Busqueda sin resultados");
         require(BusquedaTexto("ford").ejecutar(arbol, peliculas).size() == 2, "Texto en cualquier campo");
 
@@ -79,6 +79,15 @@ int main() {
         std::vector<Resultado> deLopez = BusquedaTag(FieldType::DIRECTOR, "lopez").ejecutar(arbol, peliculas);
         require(deLopez.size() == 2 && deLopez[0].pelicula->title == "Harbor", "Tag ordenado por titulo");
         require(BusquedaTag(FieldType::GENRE, "comedy").ejecutar(arbol, peliculas).size() == 1, "Tag genero");
+
+        require(BusquedaTexto("sh").ejecutar(arbol, peliculas).size() == 3, "Subcadena corta");
+        require(BusquedaTexto("shipwreck").ejecutar(arbol, peliculas).empty(), "Descartar falso positivo del trigrama ship");
+        require(BusquedaTexto("   ").ejecutar(arbol, peliculas).empty(), "Consulta vacia");
+        require(BusquedaTag(FieldType::CAST, "tom nobody").ejecutar(arbol, peliculas).empty(), "Tag exige frase completa");
+        MovieTrie rebuilt;
+        rebuilt.buildIndex(peliculas);
+        rebuilt.buildIndex({peliculas.back()});
+        require(rebuilt.searchSubstring("ship").empty(), "Reconstruccion elimina IDs anteriores");
 
         // Polimorfismo: se usan las dos busquedas a traves de la clase base
         std::vector<std::unique_ptr<Busqueda>> busquedas;

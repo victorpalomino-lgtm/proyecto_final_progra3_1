@@ -2,3 +2,5 @@ cmake-build-debug/
 .idea/
 *.exe
 data/wiki_movie_plots_deduped.csv
+
+cmake-build-release/

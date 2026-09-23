@@ -2,9 +2,9 @@
 
 #include <string>
 #include <vector>
-#include "RawMovie.h"
-#include "MovieTrie(arbol).h"
-#include "Busqueda.h"
+#include "comun/RawMovie.h"
+#include "03_arbol_insercion/MovieTrie(arbol).h"
+#include "04_busqueda/Busqueda.h"
 
 // Interfaz de la plataforma en la terminal
 //solo usa las funciones publicas de los demas modulos

@@ -3,8 +3,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "RawMovie.h"
-#include "MovieTrie(arbol).h"
+#include "comun/RawMovie.h"
+#include "03_arbol_insercion/MovieTrie(arbol).h"
 
 // pelicula encontrada, lista para mostrarse en la tabla de resultados
 struct Resultado {

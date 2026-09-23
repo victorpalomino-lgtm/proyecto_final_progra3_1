@@ -1,0 +1,217 @@
+
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ Cargando la base de datos...
+
+ [1/3] Lectura del CSV original ...... 34886 registros (2.11 s)
+
+=======================================================
+        INFORME DE DIAGNOSTICO - CSV ORIGINAL          
+=======================================================
+Total de filas leidas: 34886
+Filas con columnas inconsistentes: 0
+Paginas Wiki duplicadas: 816
+Peliculas duplicadas (Titulo+Ano): 278
+Bytes no ASCII (no implica corrupcion): 98693
+-------------------------------------------------------
+Valores faltantes por columna:
+ - Release Year       | Vacios: 0      (0.0 %) | 'Unknown': 0
+ - Title              | Vacios: 0      (0.0 %) | 'Unknown': 2
+ - Origin/Ethnicity   | Vacios: 0      (0.0 %) | 'Unknown': 0
+ - Director           | Vacios: 8      (0.0 %) | 'Unknown': 1124
+ - Cast               | Vacios: 1454   (4.2 %) | 'Unknown': 1
+ - Genre              | Vacios: 28     (0.1 %) | 'Unknown': 6083
+ - Wiki Page          | Vacios: 0      (0.0 %) | 'Unknown': 0
+ - Plot               | Vacios: 0      (0.0 %) | 'Unknown': 0
+=======================================================
+
+ [2/3] Limpieza ...................... 34886 registros limpios (1.62 s)
+
+INFORME DE PREPROCESAMIENTO - INTEGRANTE 2
+Registros procesados (todos conservados): 34886
+Campos modificados: 33123
+Espacios sobrantes eliminados: 100584
+Espacios no separables reemplazados: 1504
+Caracteres de control reemplazados: 198554
+Caracteres invisibles eliminados: 6
+ - Release Year | Vacios: 0 | Marcadores faltantes: 0
+ - Title | Vacios: 0 | Marcadores faltantes: 0
+ - Origin/Ethnicity | Vacios: 0 | Marcadores faltantes: 0
+ - Director | Vacios: 8 | Marcadores faltantes: 1124
+ - Cast | Vacios: 1454 | Marcadores faltantes: 1
+ - Genre | Vacios: 28 | Marcadores faltantes: 6086
+ - Wiki Page | Vacios: 0 | Marcadores faltantes: 0
+ - Plot | Vacios: 0 | Marcadores faltantes: 0
+Total de campos vacios detectados: 1490
+Total de marcadores convertidos a vacio: 7211
+Total de campos faltantes finales: 8701
+CSV limpio guardado en: data/movies_clean.csv
+
+ [3/3] Construccion del arbol ........ ################################ listo, 34886 peliculas (32.23 s)
+
+ Todo listo. Presione Enter para ir al menu principal...
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ Peliculas disponibles: 34886
+--------------------------------------------------------------------------------
+ 1. Buscar por palabra, frase o parte de una palabra
+ 2. Buscar por tag (director, reparto o genero)
+ 0. Salir
+--------------------------------------------------------------------------------
+ Elija una opcion: 
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ BUSQUEDA POR TEXTO
+--------------------------------------------------------------------------------
+ Puede escribir una palabra (ship), una frase (ghost ship)
+ o solo una parte de una palabra (bar).
+ Las frases se buscan completas y en el mismo orden.
+ Las sinopsis estan en ingles, por eso conviene buscar en ingles.
+ Deje el texto vacio y presione Enter para volver al menu.
+--------------------------------------------------------------------------------
+ Buscar: 
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ RESULTADOS PARA "ghost ship"
+ 4 peliculas encontradas en 0.15 s   |   Pagina 1 de 1
+--------------------------------------------------------------------------------
+ 1. Ghost Ship (2002)                        | Steve Beck         | horror
+ 2. Ghost Ship (1952)                        | Vernon Sewell      | thriller
+ 3. The Ghost Ship (1943)                    | Mark Robson        | drama
+ 4. Pirates of the High Seas (1950)          | Spencer Gordon...  | serial
+--------------------------------------------------------------------------------
+ [1-4] Ver pelicula   [M] Menu
+ Elija una opcion: 
+================================================================================
+ Ghost Ship (2002)
+================================================================================
+ Estreno   : 2002
+ Origen    : American
+ Director  : Steve Beck
+ Reparto   : Gabriel Byrne, Julianna Margulies, Desmond Harrington, Isaiah
+             Washington, Karl Urban, Emily Browning
+ Genero    : horror
+ Wikipedia : https://en.wikipedia.org/wiki/Ghost_Ship_(2002_film)
+--------------------------------------------------------------------------------
+ SINOPSIS
+
+ In May 1962, aboard the Italian ocean liner SS Antonia Graza, dozens of
+ wealthy passengers dance to the song "Senza Fine" sung by Francesca, an
+ Italian lounge singer. A young girl, Katie Harwood, sits alone until the
+ ship's captain offers to dance with her on the exterior dance floor.
+ Elsewhere, a hand presses a lever that unravels a thin wire cord from a spool.
+ The spool snaps and the wire whips across the dance floor, bisecting the
+ dancers. Forty years later, at a bar, a boat salvage crew — Captain Sean
+ Murphy, Maureen Epps, Greer, Dodge, Munder, and Santos — celebrate their
+ recent success. Jack Ferriman, a Canadian weather service pilot, approaches
+ them and says he spotted a vessel adrift in the Bering Sea. Because the ship
+ is in international waters, it can be claimed by whoever brings it to port.
+ The crew sets out on the Arctic Warrior, an ocean salvage tugboat. The ship is
+ the Antonia Graza, which was believed to be lost at sea. As they prepare to
+ tow it, they discover it contains a large quantity of gold. After a series of
+ supernatural events, the group decides to abandon the salvage effort but take
+ the gold, but an invisible force sabotages the Arctic Warrior. The tugboat
+ explodes as its engine is restarted, killing Santos. Left with no other
+ option, the group begins repairing the Antonia Graza. Greer encounters
+ [Enter] Seguir leyendo   [Q] Dejar de leer:  (Quedaron 43 lineas sin mostrar)
+--------------------------------------------------------------------------------
+ [L] Like   [V] Ver mas tarde   (se activan en la entrega final)
+ [R] Volver a los resultados
+ Elija una opcion: 
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ RESULTADOS PARA "ghost ship"
+ 4 peliculas encontradas en 0.15 s   |   Pagina 1 de 1
+--------------------------------------------------------------------------------
+ 1. Ghost Ship (2002)                        | Steve Beck         | horror
+ 2. Ghost Ship (1952)                        | Vernon Sewell      | thriller
+ 3. The Ghost Ship (1943)                    | Mark Robson        | drama
+ 4. Pirates of the High Seas (1950)          | Spencer Gordon...  | serial
+--------------------------------------------------------------------------------
+ [1-4] Ver pelicula   [M] Menu
+ Elija una opcion: 
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ Peliculas disponibles: 34886
+--------------------------------------------------------------------------------
+ 1. Buscar por palabra, frase o parte de una palabra
+ 2. Buscar por tag (director, reparto o genero)
+ 0. Salir
+--------------------------------------------------------------------------------
+ Elija una opcion: 
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ BUSQUEDA POR TEXTO
+--------------------------------------------------------------------------------
+ Puede escribir una palabra (ship), una frase (ghost ship)
+ o solo una parte de una palabra (bar).
+ Las frases se buscan completas y en el mismo orden.
+ Las sinopsis estan en ingles, por eso conviene buscar en ingles.
+ Deje el texto vacio y presione Enter para volver al menu.
+--------------------------------------------------------------------------------
+ Buscar: 
+ No se encontraron peliculas para "zzzznonexistentzzzz".
+ Presione Enter para volver al menu...
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ Peliculas disponibles: 34886
+--------------------------------------------------------------------------------
+ 1. Buscar por palabra, frase o parte de una palabra
+ 2. Buscar por tag (director, reparto o genero)
+ 0. Salir
+--------------------------------------------------------------------------------
+ Elija una opcion: 
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ BUSQUEDA POR TAG
+--------------------------------------------------------------------------------
+ 1. Director
+ 2. Reparto (actor o actriz)
+ 3. Genero
+ 0. Volver al menu
+--------------------------------------------------------------------------------
+ Elija una opcion:  Nombre del director (ejemplo: spielberg): 
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ RESULTADOS PARA director "spielberg"
+ 31 peliculas encontradas en 0.01 s   |   Pagina 1 de 7
+--------------------------------------------------------------------------------
+ 1. 1941 (1979)                              | Steven Spielberg   | -
+ 2. A.I. Artificial Intelligence (2001)      | Steven Spielberg   | science f...
+ 3. Always (1989)                            | Steven Spielberg   | fantasy,...
+ 4. Amistad (1997)                           | Steven Spielberg   | drama
+ 5. Catch Me If You Can (2002)               | Steven Spielberg   | comedy, d...
+--------------------------------------------------------------------------------
+ [1-5] Ver pelicula   [S] Siguientes 5   [M] Menu
+ Elija una opcion: 
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ Peliculas disponibles: 34886
+--------------------------------------------------------------------------------
+ 1. Buscar por palabra, frase o parte de una palabra
+ 2. Buscar por tag (director, reparto o genero)
+ 0. Salir
+--------------------------------------------------------------------------------
+ Elija una opcion:  Gracias por usar la plataforma. Hasta pronto.
