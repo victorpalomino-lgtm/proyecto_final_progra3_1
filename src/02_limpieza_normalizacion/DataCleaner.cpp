@@ -99,6 +99,7 @@ PreprocessingReport DataCleaner::clean(std::vector<RawMovie>& movies) {
                 ++report.missingMarkers[column];
                 cleaned.clear();
             }
+
             if (cleaned != original) {
                 ++report.modifiedFields;
                 original = std::move(cleaned);
