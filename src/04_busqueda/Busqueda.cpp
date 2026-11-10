@@ -1,103 +1,15 @@
 #include "04_busqueda/Busqueda.h"
+#include "04_busqueda/BusquedaComun.h"
 #include "02_limpieza_normalizacion/DataCleaner.h"
 #include "comun/Utilidades.h"
 
 #include <algorithm>
-#include <sstream>
-#include <unordered_set>
+
+using namespace busqueda_interna;
 
 const size_t ANCHO_TITULO = 40;
 const size_t ANCHO_DIRECTOR = 18;
 const size_t ANCHO_GENERO = 12;
-
-namespace {
-std::vector<std::string> separarTerminos(const std::string& textoNormalizado) {
-    std::vector<std::string> terminos;
-    std::istringstream entrada(textoNormalizado);
-    std::string termino;
-
-    while (entrada >> termino) {
-        bool repetido = false;
-        for (const std::string& guardado : terminos) {
-            if (guardado == termino) {
-                repetido = true;
-                break;
-            }
-        }
-        if (!repetido) {
-            terminos.push_back(termino);
-        }
-    }
-    return terminos;
-}
-
-bool contiene(const std::string& campo, const std::string& texto) {
-    return !texto.empty() && campo.find(texto) != std::string::npos;
-}
-
-int sumarCampo(const std::string& campo, const std::string& frase,
-               const std::vector<std::string>& terminos, int peso) {
-    int puntaje = 0;
-    if (contiene(campo, frase)) {
-        puntaje += peso * 4;
-    }
-    for (const std::string& termino : terminos) {
-        if (contiene(campo, termino)) {
-            puntaje += peso;
-        }
-    }
-    return puntaje;
-}
-
-int puntajeTexto(const RawMovie& pelicula, const std::string& frase,
-                 const std::vector<std::string>& terminos) {
-    std::string titulo = DataCleaner::normalizeForSearch(pelicula.title);
-    std::string director = DataCleaner::normalizeForSearch(pelicula.director);
-    std::string reparto = DataCleaner::normalizeForSearch(pelicula.cast);
-    std::string genero = DataCleaner::normalizeForSearch(pelicula.genre);
-    std::string sinopsis = DataCleaner::normalizeForSearch(pelicula.plot);
-
-    int puntaje = 0;
-    if (titulo == frase) {
-        puntaje += 200;
-    }
-    puntaje += sumarCampo(titulo, frase, terminos, 40);
-    puntaje += sumarCampo(director, frase, terminos, 18);
-    puntaje += sumarCampo(genero, frase, terminos, 14);
-    puntaje += sumarCampo(reparto, frase, terminos, 12);
-    puntaje += sumarCampo(sinopsis, frase, terminos, 5);
-
-    bool encontroTodos = !terminos.empty();
-    for (const std::string& termino : terminos) {
-        bool aparece = contiene(titulo, termino) || contiene(director, termino) ||
-                       contiene(genero, termino) || contiene(reparto, termino) ||
-                       contiene(sinopsis, termino);
-        if (!aparece) {
-            encontroTodos = false;
-            break;
-        }
-    }
-    if (encontroTodos) {
-        puntaje += 20;
-    }
-    return puntaje;
-}
-
-int puntajeCampo(const std::string& valor, const std::string& frase,
-                 const std::vector<std::string>& terminos) {
-    std::string campo = DataCleaner::normalizeForSearch(valor);
-    int puntaje = 0;
-    if (contiene(campo, frase)) {
-        puntaje += 40;
-    }
-    for (const std::string& termino : terminos) {
-        if (contiene(campo, termino)) {
-            puntaje += 10;
-        }
-    }
-    return puntaje;
-}
-}
 
 bool Resultado::operator<(const Resultado& otro) const {
     if (prioridad != otro.prioridad) {
@@ -130,29 +42,12 @@ std::ostream& operator<<(std::ostream& os, const Resultado& resultado) {
 }
 
 
-Busqueda::Busqueda(const std::string& texto) : texto(texto) {
-    // Se usa la misma funcion que el arbol para que ambos comparen igual
-    textoNormalizado = DataCleaner::normalizeForSearch(texto);
-}
-
-Resultado Busqueda::crearResultado(size_t id, const RawMovie& pelicula) const {
-    Resultado resultado;
-    resultado.id = id;
-    resultado.pelicula = &pelicula;
-    resultado.tituloOrden = DataCleaner::normalizeForSearch(pelicula.title);
-    return resultado;
-}
-
-const std::string& Busqueda::getTexto() const {
-    return texto;
-}
-
-
-BusquedaTexto::BusquedaTexto(const std::string& texto) : Busqueda(texto) {
-}
-
 // Trie: O(min(m,3) + candidatos), ademas de normalizacion, confirmacion y ordenamiento.
-std::vector<Resultado> BusquedaTexto::ejecutar(const MovieTrie& arbol, const std::vector<RawMovie>& peliculas) const {
+std::vector<Resultado> BusquedaTexto::ejecutar(const std::string& consulta, const MovieTrie& arbol,
+                                               const std::vector<RawMovie>& peliculas) const {
+    // Se usa la misma funcion que el arbol para que ambos comparen igual
+    const std::string textoNormalizado = DataCleaner::normalizeForSearch(consulta);
+
     std::vector<Resultado> resultados;
     std::vector<std::string> terminos = separarTerminos(textoNormalizado);
     if (terminos.empty()) {
@@ -187,12 +82,12 @@ std::vector<Resultado> BusquedaTexto::ejecutar(const MovieTrie& arbol, const std
     return resultados;
 }
 
-std::string BusquedaTexto::descripcion() const {
-    return "\"" + texto + "\"";
+std::string BusquedaTexto::descripcion(const std::string& consulta) const {
+    return "\"" + consulta + "\"";
 }
 
 
-BusquedaTag::BusquedaTag(FieldType campo, const std::string& texto) : Busqueda(texto), campo(campo) {
+BusquedaTag::BusquedaTag(FieldType campo) : campo(campo) {
 }
 
 const std::string& BusquedaTag::valorCampo(const RawMovie& pelicula) const {
@@ -212,7 +107,10 @@ const std::string& BusquedaTag::valorCampo(const RawMovie& pelicula) const {
 }
 
 
-std::vector<Resultado> BusquedaTag::ejecutar(const MovieTrie& arbol, const std::vector<RawMovie>& peliculas) const {
+std::vector<Resultado> BusquedaTag::ejecutar(const std::string& consulta, const MovieTrie& arbol,
+                                             const std::vector<RawMovie>& peliculas) const {
+    const std::string textoNormalizado = DataCleaner::normalizeForSearch(consulta);
+
     std::vector<Resultado> resultados;
     std::vector<std::string> terminos = separarTerminos(textoNormalizado);
     if (terminos.empty()) {
@@ -238,8 +136,8 @@ std::vector<Resultado> BusquedaTag::ejecutar(const MovieTrie& arbol, const std::
     return resultados;
 }
 
-std::string BusquedaTag::descripcion() const {
-    return nombreCampo(campo) + " \"" + texto + "\"";
+std::string BusquedaTag::descripcion(const std::string& consulta) const {
+    return nombreCampo(campo) + " \"" + consulta + "\"";
 }
 
 std::string BusquedaTag::nombreCampo(FieldType campo) {

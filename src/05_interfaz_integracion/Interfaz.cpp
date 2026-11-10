@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <new>
 #include <thread>
 
@@ -32,7 +33,7 @@ static bool esTerminal() {
 }
 
 Interfaz::Interfaz(const std::vector<RawMovie>& peliculas, const MovieTrie& arbol)
-    : peliculas(peliculas), arbol(arbol) {
+    : peliculas(peliculas), buscador(arbol, peliculas) {
 }
 
 // Usa el indice unico de la aplicacion (Singleton). Debe estar construido antes.
@@ -200,8 +201,8 @@ void Interfaz::pantallaBusquedaTexto() {
     if (!leerLinea(" Buscar: ", texto) || texto.empty()) {
         return;
     }
-    BusquedaTexto busqueda(texto);
-    mostrarResultados(busqueda);
+    buscador.setEstrategia(std::make_unique<BusquedaTexto>());
+    mostrarResultados(texto);
 }
 
 void Interfaz::pantallaBusquedaTag() {
@@ -252,20 +253,21 @@ void Interfaz::pantallaBusquedaTag() {
             continue;
         }
 
-        BusquedaTag busqueda(campo, texto);
-        mostrarResultados(busqueda);
+        buscador.setEstrategia(std::make_unique<BusquedaTag>(campo));
+        mostrarResultados(texto);
         return;
     }
 }
 
-void Interfaz::mostrarResultados(const Busqueda& busqueda) {
+void Interfaz::mostrarResultados(const std::string& consulta) {
     Cronometro reloj;
-    std::vector<Resultado> resultados = busqueda.ejecutar(arbol, peliculas);
+    std::vector<Resultado> resultados = buscador.buscar(consulta);
     std::string tiempo = reloj.texto();
+    const std::string descripcion = buscador.descripcion(consulta);
 
     if (resultados.empty()) {
         std::cout << std::endl;
-        std::cout << " No se encontraron peliculas para " << busqueda.descripcion() << "." << std::endl;
+        std::cout << " No se encontraron peliculas para " << descripcion << "." << std::endl;
         pausa(" Presione Enter para volver al menu...");
         return;
     }
@@ -285,7 +287,7 @@ void Interfaz::mostrarResultados(const Busqueda& busqueda) {
 
         limpiarPantalla();
         mostrarCabecera();
-        std::cout << " RESULTADOS PARA " << busqueda.descripcion() << std::endl;
+        std::cout << " RESULTADOS PARA " << descripcion << std::endl;
         if (resultados.size() == 1) {
             std::cout << " 1 pelicula encontrada en " << tiempo;
         } else {

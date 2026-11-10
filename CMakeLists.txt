@@ -9,7 +9,8 @@ set(LIMPIEZA src/02_limpieza_normalizacion/DataCleaner.cpp)
 set(EXPORTACION src/02_limpieza_normalizacion/CSVWriter.cpp)
 set(ARBOL "src/03_arbol_insercion/MovieTrie(arbol).cpp"
         "src/03_arbol_insercion/IndiceGlobal.cpp")
-set(BUSQUEDA src/04_busqueda/Busqueda.cpp)
+set(BUSQUEDA src/04_busqueda/Busqueda.cpp src/04_busqueda/BusquedaComun.cpp
+        src/04_busqueda/BuscadorPeliculas.cpp)
 set(INTERFAZ src/05_interfaz_integracion/Interfaz.cpp)
 set(UTILIDADES src/comun/Utilidades.cpp)
 

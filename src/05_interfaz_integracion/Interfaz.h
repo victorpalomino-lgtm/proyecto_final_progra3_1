@@ -6,17 +6,18 @@
 #include "03_arbol_insercion/MovieTrie(arbol).h"
 #include "03_arbol_insercion/IndiceGlobal.h"
 #include "04_busqueda/Busqueda.h"
+#include "04_busqueda/BuscadorPeliculas.h"
 
 // Interfaz de la plataforma en la terminal
 //solo usa las funciones publicas de los demas modulos
 class Interfaz {
 private:
     const std::vector<RawMovie>& peliculas;
-    const MovieTrie& arbol;
+    BuscadorPeliculas buscador; // contexto del patron Strategy
 
     void pantallaBusquedaTexto();
     void pantallaBusquedaTag();
-    void mostrarResultados(const Busqueda& busqueda);
+    void mostrarResultados(const std::string& consulta); // usa la estrategia activa del buscador
     void mostrarDetalle(const RawMovie& pelicula);
     static void mostrarCampo(const std::string& etiqueta, const std::string& valor);
 
