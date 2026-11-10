@@ -7,8 +7,10 @@ find_package(Threads REQUIRED)
 # Cada carpeta corresponde a una responsabilidad de la entrega.
 set(LIMPIEZA src/02_limpieza_normalizacion/DataCleaner.cpp)
 set(EXPORTACION src/02_limpieza_normalizacion/CSVWriter.cpp)
-set(ARBOL "src/03_arbol_insercion/MovieTrie(arbol).cpp")
-set(BUSQUEDA src/04_busqueda/Busqueda.cpp)
+set(ARBOL "src/03_arbol_insercion/MovieTrie(arbol).cpp"
+        "src/03_arbol_insercion/IndiceGlobal.cpp")
+set(BUSQUEDA src/04_busqueda/Busqueda.cpp src/04_busqueda/BusquedaComun.cpp
+        src/04_busqueda/BuscadorPeliculas.cpp)
 set(INTERFAZ src/05_interfaz_integracion/Interfaz.cpp)
 set(UTILIDADES src/comun/Utilidades.cpp)
 
@@ -24,8 +26,11 @@ if(BUILD_TESTING)
     add_executable(csv_writer_tests tests/CSVWriterTests.cpp ${EXPORTACION})
     add_executable(interfaz_tests tests/InterfazTests.cpp
             ${BUSQUEDA} ${UTILIDADES} ${LIMPIEZA} ${ARBOL})
+    add_executable(indice_global_tests tests/IndiceGlobalTests.cpp ${LIMPIEZA} ${ARBOL})
+    target_link_libraries(indice_global_tests PRIVATE Threads::Threads)
 
-    foreach(test_target csv_reader_tests data_cleaner_tests csv_writer_tests interfaz_tests)
+    foreach(test_target csv_reader_tests data_cleaner_tests csv_writer_tests interfaz_tests
+            indice_global_tests)
         target_include_directories(${test_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
         add_test(NAME ${test_target} COMMAND ${test_target})
     endforeach()

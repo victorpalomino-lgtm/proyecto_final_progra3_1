@@ -4,23 +4,28 @@
 #include <vector>
 #include "comun/RawMovie.h"
 #include "03_arbol_insercion/MovieTrie(arbol).h"
+#include "03_arbol_insercion/IndiceGlobal.h"
 #include "04_busqueda/Busqueda.h"
+#include "04_busqueda/BuscadorPeliculas.h"
 
 // Interfaz de la plataforma en la terminal
 //solo usa las funciones publicas de los demas modulos
 class Interfaz {
 private:
     const std::vector<RawMovie>& peliculas;
-    const MovieTrie& arbol;
+    BuscadorPeliculas buscador; // contexto del patron Strategy
 
     void pantallaBusquedaTexto();
     void pantallaBusquedaTag();
-    void mostrarResultados(const Busqueda& busqueda);
+    void mostrarResultados(const std::string& consulta); // usa la estrategia activa del buscador
     void mostrarDetalle(const RawMovie& pelicula);
     static void mostrarCampo(const std::string& etiqueta, const std::string& valor);
 
 public:
+    // Inyeccion explicita: permite usar un Trie y un vector propios (por ejemplo en pruebas)
     Interfaz(const std::vector<RawMovie>& peliculas, const MovieTrie& arbol);
+    // Usa el Singleton IndiceGlobal, que ya debe estar construido
+    Interfaz();
 
     // Menu principal
     void ejecutar();
@@ -31,7 +36,7 @@ public:
     static void mostrarLinea(char simbolo);
     static void mostrarCabecera();
     static void mostrarEtapa(const std::string& nombre, const std::string& detalle);
-    static bool construirArbol(MovieTrie& arbol, const std::vector<RawMovie>& peliculas);
+    static bool construirIndice(IndiceGlobal& indice, std::vector<RawMovie> peliculas);
     static bool leerLinea(const std::string& mensaje, std::string& linea);
     static void pausa(const std::string& mensaje);
 };

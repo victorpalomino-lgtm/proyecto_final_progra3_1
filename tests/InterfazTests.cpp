@@ -1,4 +1,5 @@
 #include "04_busqueda/Busqueda.h"
+#include "04_busqueda/BuscadorPeliculas.h"
 #include "comun/Utilidades.h"
 
 #include <iostream>
@@ -58,44 +59,73 @@ int main() {
         MovieTrie arbol;
         arbol.buildIndex(peliculas);
 
-        std::vector<Resultado> barcos = BusquedaTexto("ship").ejecutar(arbol, peliculas);
+        std::vector<Resultado> barcos = BusquedaTexto().ejecutar("ship", arbol, peliculas);
         require(barcos.size() == 3, "Encontrar ship en titulo y sinopsis");
         require(barcos[0].pelicula->title == "Another Ship" && barcos[1].pelicula->title == "The Ship" &&
                 barcos[2].pelicula->title == "Blue Sky", "Primero las que tienen el texto en el titulo");
-        require(BusquedaTexto("SHIP").ejecutar(arbol, peliculas).size() == 3, "No distinguir mayusculas");
-        require(BusquedaTexto("arb").ejecutar(arbol, peliculas).size() == 1, "Buscar parte de una palabra");
-        require(BusquedaTexto("ghost ship").ejecutar(arbol, peliculas).size() == 1, "Buscar una frase contigua");
-        require(BusquedaTexto("ghost pirates").ejecutar(arbol, peliculas).empty(),
+        require(BusquedaTexto().ejecutar("SHIP", arbol, peliculas).size() == 3, "No distinguir mayusculas");
+        require(BusquedaTexto().ejecutar("arb", arbol, peliculas).size() == 1, "Buscar parte de una palabra");
+        require(BusquedaTexto().ejecutar("ghost ship", arbol, peliculas).size() == 1, "Buscar una frase contigua");
+        require(BusquedaTexto().ejecutar("ghost pirates", arbol, peliculas).empty(),
                 "No aceptar palabras separadas como frase");
-        require(BusquedaTexto("zzz").ejecutar(arbol, peliculas).empty(), "Busqueda sin resultados");
-        require(BusquedaTexto("ford").ejecutar(arbol, peliculas).size() == 2, "Texto en cualquier campo");
+        require(BusquedaTexto().ejecutar("zzz", arbol, peliculas).empty(), "Busqueda sin resultados");
+        require(BusquedaTexto().ejecutar("ford", arbol, peliculas).size() == 2, "Texto en cualquier campo");
 
         // El tag solo mira el campo elegido
-        std::vector<Resultado> directorFord = BusquedaTag(FieldType::DIRECTOR, "ford").ejecutar(arbol, peliculas);
+        std::vector<Resultado> directorFord = BusquedaTag(FieldType::DIRECTOR).ejecutar("ford", arbol, peliculas);
         require(directorFord.size() == 1 && directorFord[0].pelicula->title == "Blue Sky",
                 "Tag director ignora reparto y sinopsis");
-        std::vector<Resultado> repartoFord = BusquedaTag(FieldType::CAST, "Ford").ejecutar(arbol, peliculas);
+        std::vector<Resultado> repartoFord = BusquedaTag(FieldType::CAST).ejecutar("Ford", arbol, peliculas);
         require(repartoFord.size() == 1 && repartoFord[0].pelicula->title == "Harbor", "Tag reparto");
-        std::vector<Resultado> deLopez = BusquedaTag(FieldType::DIRECTOR, "lopez").ejecutar(arbol, peliculas);
+        std::vector<Resultado> deLopez = BusquedaTag(FieldType::DIRECTOR).ejecutar("lopez", arbol, peliculas);
         require(deLopez.size() == 2 && deLopez[0].pelicula->title == "Harbor", "Tag ordenado por titulo");
-        require(BusquedaTag(FieldType::GENRE, "comedy").ejecutar(arbol, peliculas).size() == 1, "Tag genero");
+        require(BusquedaTag(FieldType::GENRE).ejecutar("comedy", arbol, peliculas).size() == 1, "Tag genero");
 
-        require(BusquedaTexto("sh").ejecutar(arbol, peliculas).size() == 3, "Subcadena corta");
-        require(BusquedaTexto("shipwreck").ejecutar(arbol, peliculas).empty(), "Descartar falso positivo del trigrama ship");
-        require(BusquedaTexto("   ").ejecutar(arbol, peliculas).empty(), "Consulta vacia");
-        require(BusquedaTag(FieldType::CAST, "tom nobody").ejecutar(arbol, peliculas).empty(), "Tag exige frase completa");
+        require(BusquedaTexto().ejecutar("sh", arbol, peliculas).size() == 3, "Subcadena corta");
+        require(BusquedaTexto().ejecutar("shipwreck", arbol, peliculas).empty(), "Descartar falso positivo del trigrama ship");
+        require(BusquedaTexto().ejecutar("   ", arbol, peliculas).empty(), "Consulta vacia");
+        require(BusquedaTag(FieldType::CAST).ejecutar("tom nobody", arbol, peliculas).empty(), "Tag exige frase completa");
         MovieTrie rebuilt;
         rebuilt.buildIndex(peliculas);
         rebuilt.buildIndex({peliculas.back()});
         require(rebuilt.searchSubstring("ship").empty(), "Reconstruccion elimina IDs anteriores");
 
-        // Polimorfismo: se usan las dos busquedas a traves de la clase base
-        std::vector<std::unique_ptr<Busqueda>> busquedas;
-        busquedas.push_back(std::make_unique<BusquedaTexto>("ship"));
-        busquedas.push_back(std::make_unique<BusquedaTag>(FieldType::DIRECTOR, "lopez"));
-        require(busquedas[0]->descripcion() == "\"ship\"", "Descripcion de busqueda por texto");
-        require(busquedas[1]->descripcion() == "director \"lopez\"", "Descripcion de busqueda por tag");
-        require(busquedas[1]->ejecutar(arbol, peliculas).size() == 2, "Ejecutar desde la clase base");
+        // Polimorfismo: se usan las dos busquedas a traves de la interfaz EstrategiaBusqueda
+        std::vector<std::unique_ptr<EstrategiaBusqueda>> busquedas;
+        busquedas.push_back(std::make_unique<BusquedaTexto>());
+        busquedas.push_back(std::make_unique<BusquedaTag>(FieldType::DIRECTOR));
+        require(busquedas[0]->descripcion("ship") == "\"ship\"", "Descripcion de busqueda por texto");
+        require(busquedas[1]->descripcion("lopez") == "director \"lopez\"", "Descripcion de busqueda por tag");
+        require(busquedas[1]->ejecutar("lopez", arbol, peliculas).size() == 2, "Ejecutar desde la clase base");
+
+        // Strategy: el contexto cambia de estrategia en tiempo de ejecucion y la misma
+        // consulta da otro resultado
+        BuscadorPeliculas buscador(arbol, peliculas);
+        require(!buscador.tieneEstrategia(), "El buscador empieza sin estrategia");
+        bool lanzo = false;
+        try { buscador.buscar("ford"); } catch (const std::logic_error&) { lanzo = true; }
+        require(lanzo, "Buscar sin estrategia lanza logic_error");
+
+        buscador.setEstrategia(std::make_unique<BusquedaTexto>());
+        std::vector<Resultado> fordTexto = buscador.buscar("ford");
+        require(fordTexto.size() == 2 && buscador.descripcion("ford") == "\"ford\"",
+                "Estrategia texto: ford en cualquier campo");
+
+        buscador.setEstrategia(std::make_unique<BusquedaTag>(FieldType::DIRECTOR));
+        std::vector<Resultado> fordDirector = buscador.buscar("ford");
+        require(fordDirector.size() == 1 && fordDirector[0].pelicula->title == "Blue Sky" &&
+                buscador.descripcion("ford") == "director \"ford\"", "Estrategia tag director");
+
+        buscador.setEstrategia(std::make_unique<BusquedaTag>(FieldType::CAST));
+        std::vector<Resultado> fordReparto = buscador.buscar("ford");
+        require(fordReparto.size() == 1 && fordReparto[0].pelicula->title == "Harbor",
+                "Estrategia tag reparto");
+
+        // El contexto devuelve exactamente lo mismo que la estrategia usada directamente
+        std::vector<Resultado> directo = BusquedaTexto().ejecutar("ford", arbol, peliculas);
+        require(directo.size() == fordTexto.size() && directo[0].id == fordTexto[0].id &&
+                directo[1].id == fordTexto[1].id && directo[0].prioridad == fordTexto[0].prioridad,
+                "El contexto no altera resultados");
 
         // Sobrecarga de operadores
         std::ostringstream fila;
@@ -103,7 +133,7 @@ int main() {
         require(fila.str().find("Another Ship (2001)") != std::string::npos &&
                 fila.str().find("Steven Spielberg") != std::string::npos, "Imprimir una fila");
         std::ostringstream vacia;
-        vacia << BusquedaTexto("silent").ejecutar(arbol, peliculas)[0];
+        vacia << BusquedaTexto().ejecutar("silent", arbol, peliculas)[0];
         require(vacia.str().find("| -") != std::string::npos, "Campos vacios se muestran con -");
 
         Resultado primero;
