@@ -4,6 +4,7 @@
 #include <vector>
 #include "comun/RawMovie.h"
 #include "03_arbol_insercion/MovieTrie(arbol).h"
+#include "03_arbol_insercion/IndiceGlobal.h"
 #include "04_busqueda/Busqueda.h"
 
 // Interfaz de la plataforma en la terminal
@@ -20,7 +21,10 @@ private:
     static void mostrarCampo(const std::string& etiqueta, const std::string& valor);
 
 public:
+    // Inyeccion explicita: permite usar un Trie y un vector propios (por ejemplo en pruebas)
     Interfaz(const std::vector<RawMovie>& peliculas, const MovieTrie& arbol);
+    // Usa el Singleton IndiceGlobal, que ya debe estar construido
+    Interfaz();
 
     // Menu principal
     void ejecutar();
@@ -31,7 +35,7 @@ public:
     static void mostrarLinea(char simbolo);
     static void mostrarCabecera();
     static void mostrarEtapa(const std::string& nombre, const std::string& detalle);
-    static bool construirArbol(MovieTrie& arbol, const std::vector<RawMovie>& peliculas);
+    static bool construirIndice(IndiceGlobal& indice, std::vector<RawMovie> peliculas);
     static bool leerLinea(const std::string& mensaje, std::string& linea);
     static void pausa(const std::string& mensaje);
 };

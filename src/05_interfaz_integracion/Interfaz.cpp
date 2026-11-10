@@ -35,6 +35,11 @@ Interfaz::Interfaz(const std::vector<RawMovie>& peliculas, const MovieTrie& arbo
     : peliculas(peliculas), arbol(arbol) {
 }
 
+// Usa el indice unico de la aplicacion (Singleton). Debe estar construido antes.
+Interfaz::Interfaz()
+    : Interfaz(IndiceGlobal::instancia().peliculas(), IndiceGlobal::instancia().arbol()) {
+}
+
 // funciones generales y pantalla de carga
 void Interfaz::prepararConsola() {
 #ifdef _WIN32
@@ -75,8 +80,9 @@ void Interfaz::mostrarEtapa(const std::string& nombre, const std::string& detall
     std::cout << linea << " " << detalle << std::endl;
 }
 
-// Construye el arbol en otro hilo. Mientras tanto, el hilo principal imprime un # cada
-bool Interfaz::construirArbol(MovieTrie& arbol, const std::vector<RawMovie>& peliculas) {
+// Construye el indice unico (Singleton) en otro hilo. Mientras tanto, el hilo principal
+// imprime un # cada segundo.
+bool Interfaz::construirIndice(IndiceGlobal& indice, std::vector<RawMovie> peliculas) {
     std::string linea = " [3/3] Construccion del arbol ";
     while (linea.size() < ANCHO_ETAPA) {
         linea += '.';
@@ -89,7 +95,7 @@ bool Interfaz::construirArbol(MovieTrie& arbol, const std::vector<RawMovie>& pel
 
     std::thread hilo([&]() {
         try {
-            arbol.buildIndex(peliculas);
+            indice.construir(std::move(peliculas));
         } catch (const std::bad_alloc&) {
             error = "no hay memoria suficiente";
         } catch (const std::exception& e) {
@@ -114,7 +120,7 @@ bool Interfaz::construirArbol(MovieTrie& arbol, const std::vector<RawMovie>& pel
         std::cerr << "Pruebe con menos peliculas usando el argumento --limite N" << std::endl;
         return false;
     }
-    std::cout << " listo, " << peliculas.size() << " peliculas (" << reloj << ")" << std::endl;
+    std::cout << " listo, " << indice.peliculas().size() << " peliculas (" << reloj << ")" << std::endl;
     return true;
 }
 

@@ -9,7 +9,7 @@
 #include "02_limpieza_normalizacion/DataCleaner.h"
 #include "02_limpieza_normalizacion/CSVWriter.h"
 #include <filesystem>
-#include "03_arbol_insercion/MovieTrie(arbol).h"
+#include "03_arbol_insercion/IndiceGlobal.h"
 #include "05_interfaz_integracion/Interfaz.h"
 #include "comun/Utilidades.h"
 #include <cstdlib>
@@ -111,14 +111,16 @@ int main(int argc, char* argv[]) {
             std::cout << " Aviso: solo se usan las primeras " << limite << " peliculas (--limite)." << std::endl;
         }
 
-        MovieTrie trie;
-        if (!Interfaz::construirArbol(trie, movies)) {
+        // Singleton: el arbol y las peliculas quedan juntos en el indice unico.
+        // Las peliculas se mueven al indice, por eso "movies" no se usa despues.
+        IndiceGlobal& indice = IndiceGlobal::instancia();
+        if (!Interfaz::construirIndice(indice, std::move(movies))) {
             return 1;
         }
 
         std::cout << std::endl;
         Interfaz::pausa(" Todo listo. Presione Enter para ir al menu principal...");
-        Interfaz interfaz(movies, trie);
+        Interfaz interfaz; // usa IndiceGlobal::instancia()
         interfaz.ejecutar();
         return 0;
     } catch (const std::exception& error) {
