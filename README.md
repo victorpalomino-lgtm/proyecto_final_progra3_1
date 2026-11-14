@@ -40,4 +40,4 @@ ctest --test-dir cmake-build-release --output-on-failure
 
 Para repetir el diagnóstico y la limpieza, agregar `--rebuild-clean`. Requiere el archivo `data/wiki_movie_plots_deduped.csv`, que no está incluido en Git. Sin esa opción, se utiliza `data/movies_clean.csv` si está disponible.
 
-El catálogo completo consumió aproximadamente 1,8 GiB de RAM en las pruebas locales. Like y Ver más tarde están pendientes para la entrega final.
+El catálogo completo consumió aproximadamente 1,8 GiB de RAM en las pruebas locales. Los Like y Ver más tarde se guardan en `data/listas_usuario.txt`.

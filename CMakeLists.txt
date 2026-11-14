@@ -11,7 +11,8 @@ set(ARBOL "src/03_arbol_insercion/MovieTrie(arbol).cpp"
         "src/03_arbol_insercion/IndiceGlobal.cpp")
 set(BUSQUEDA src/04_busqueda/Busqueda.cpp src/04_busqueda/BusquedaComun.cpp
         src/04_busqueda/BuscadorPeliculas.cpp)
-set(INTERFAZ src/05_interfaz_integracion/Interfaz.cpp)
+set(INTERFAZ src/05_interfaz_integracion/Interfaz.cpp src/05_interfaz_integracion/ListasUsuario.cpp
+        src/05_interfaz_integracion/Recomendador.cpp)
 set(UTILIDADES src/comun/Utilidades.cpp)
 
 add_executable(proyecto_progra3_1 main.cpp
@@ -28,9 +29,12 @@ if(BUILD_TESTING)
             ${BUSQUEDA} ${UTILIDADES} ${LIMPIEZA} ${ARBOL})
     add_executable(indice_global_tests tests/IndiceGlobalTests.cpp ${LIMPIEZA} ${ARBOL})
     target_link_libraries(indice_global_tests PRIVATE Threads::Threads)
+    add_executable(listas_usuario_tests tests/ListasUsuarioTests.cpp
+            src/05_interfaz_integracion/ListasUsuario.cpp src/05_interfaz_integracion/Recomendador.cpp
+            ${BUSQUEDA} ${UTILIDADES} ${LIMPIEZA} ${ARBOL})
 
     foreach(test_target csv_reader_tests data_cleaner_tests csv_writer_tests interfaz_tests
-            indice_global_tests)
+            indice_global_tests listas_usuario_tests)
         target_include_directories(${test_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
         add_test(NAME ${test_target} COMMAND ${test_target})
     endforeach()
