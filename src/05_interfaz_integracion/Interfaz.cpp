@@ -1,10 +1,12 @@
 #include "05_interfaz_integracion/Interfaz.h"
+#include "05_interfaz_integracion/Recomendador.h"
 #include "comun/Utilidades.h"
 
 #include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <new>
@@ -32,8 +34,51 @@ static bool esTerminal() {
 #endif
 }
 
-Interfaz::Interfaz(const std::vector<RawMovie>& peliculas, const MovieTrie& arbol)
-    : peliculas(peliculas), buscador(arbol, peliculas) {
+Interfaz::Interfaz(const std::vector<RawMovie>& peliculas, const MovieTrie& arbol,
+                   const std::string& rutaListas)
+    : peliculas(peliculas), buscador(arbol, peliculas),
+      listas(rutaListas.empty() ? Interfaz::rutaListas() : rutaListas) {
+    for (size_t id = 0; id < peliculas.size(); id++) {
+        idPorClave.emplace(ListasUsuario::clave(peliculas[id]), id);
+    }
+}
+
+//el archivo va en la carpeta data, aunque se ejecute desde la carpeta del build
+std::string Interfaz::rutaListas() {
+    if (std::filesystem::is_directory("data")) {
+        return "data/listas_usuario.txt";
+    }
+    if (std::filesystem::is_directory("../data")) {
+        return "../data/listas_usuario.txt";
+    }
+    return "listas_usuario.txt";
+}
+
+//pasa las claves guardadas a resultados, solo las peliculas que estan cargadas
+std::vector<Resultado> Interfaz::resultadosDe(const std::vector<std::string>& claves) const {
+    std::vector<Resultado> resultados;
+    for (auto it = claves.rbegin(); it != claves.rend(); ++it) { //la ultima agregada sale primero
+        auto encontrada = idPorClave.find(*it);
+        if (encontrada != idPorClave.end()) {
+            Resultado resultado;
+            resultado.id = encontrada->second;
+            resultado.pelicula = &peliculas[encontrada->second];
+            resultados.push_back(resultado);
+        }
+    }
+    return resultados;
+}
+
+const std::vector<Resultado>& Interfaz::obtenerRecomendadas() {
+    if (!recomendadasAlDia) {
+        std::vector<size_t> idsConLike;
+        for (const Resultado& resultado : resultadosDe(listas.likes())) {
+            idsConLike.push_back(resultado.id);
+        }
+        recomendadas = Recomendador::recomendar(peliculas, idsConLike);
+        recomendadasAlDia = true;
+    }
+    return recomendadas;
 }
 
 // Usa el indice unico de la aplicacion (Singleton). Debe estar construido antes.
@@ -155,9 +200,16 @@ void Interfaz::ejecutar() {
         limpiarPantalla();
         mostrarCabecera();
         std::cout << " Peliculas disponibles: " << peliculas.size() << std::endl;
+        mostrarResumen("VER MAS TARDE", resultadosDe(listas.verMasTarde()),
+                       "Todavia no agrego peliculas. Use [V] en el detalle de una pelicula.");
+        mostrarResumen("RECOMENDADAS PARA USTED", obtenerRecomendadas(),
+                       "De Like a una pelicula para recibir recomendaciones.");
         mostrarLinea('-');
         std::cout << " 1. Buscar por palabra, frase o parte de una palabra" << std::endl;
         std::cout << " 2. Buscar por tag (director, reparto o genero)" << std::endl;
+        std::cout << " 3. Ver mas tarde" << std::endl;
+        std::cout << " 4. Mis Likes" << std::endl;
+        std::cout << " 5. Todas las recomendadas" << std::endl;
         std::cout << " 0. Salir" << std::endl;
         mostrarLinea('-');
         if (!aviso.empty()) {
@@ -174,13 +226,52 @@ void Interfaz::ejecutar() {
             pantallaBusquedaTexto();
         } else if (opcion == "2") {
             pantallaBusquedaTag();
+        } else if (opcion == "3") {
+            pantallaLista("VER MAS TARDE", resultadosDe(listas.verMasTarde()),
+                          "Su lista de Ver mas tarde esta vacia.");
+        } else if (opcion == "4") {
+            pantallaLista("MIS LIKES", resultadosDe(listas.likes()),
+                          "Todavia no dio Like a ninguna pelicula.");
+        } else if (opcion == "5") {
+            std::vector<Resultado> copia = obtenerRecomendadas(); //copia porque cambia si da like en el detalle
+            pantallaLista("RECOMENDADAS PARA USTED", copia,
+                          "De Like a una pelicula para recibir recomendaciones.");
         } else if (opcion == "0") {
             std::cout << " Gracias por usar la plataforma. Hasta pronto." << std::endl;
             return;
         } else {
-            aviso = "Opcion no valida. Escriba 1, 2 o 0.";
+            aviso = "Opcion no valida. Escriba un numero del 0 al 5.";
         }
     }
+}
+
+//muestra hasta 5 peliculas de una lista en la pantalla de inicio
+void Interfaz::mostrarResumen(const std::string& titulo, const std::vector<Resultado>& resultados,
+                              const std::string& vacio) {
+    mostrarLinea('-');
+    std::cout << " " << titulo;
+    if (resultados.size() > POR_PAGINA) {
+        std::cout << " (" << POR_PAGINA << " de " << resultados.size() << ")";
+    }
+    std::cout << std::endl;
+    if (resultados.empty()) {
+        std::cout << " " << vacio << std::endl;
+        return;
+    }
+    for (size_t i = 0; i < resultados.size() && i < POR_PAGINA; i++) {
+        std::cout << " - " << resultados[i] << std::endl;
+    }
+}
+
+void Interfaz::pantallaLista(const std::string& titulo, const std::vector<Resultado>& resultados,
+                             const std::string& vacio) {
+    if (resultados.empty()) {
+        std::cout << std::endl;
+        std::cout << " " << vacio << std::endl;
+        pausa(" Presione Enter para volver al menu...");
+        return;
+    }
+    mostrarLista(titulo, resultados, "");
 }
 
 // Pantallas de busqueda
@@ -271,7 +362,12 @@ void Interfaz::mostrarResultados(const std::string& consulta) {
         pausa(" Presione Enter para volver al menu...");
         return;
     }
+    mostrarLista("RESULTADOS PARA " + descripcion, resultados, tiempo);
+}
 
+//paginacion de 5 en 5, la usan la busqueda y las listas del usuario
+void Interfaz::mostrarLista(const std::string& titulo, const std::vector<Resultado>& resultados,
+                            const std::string& tiempo) {
     size_t totalPaginas = (resultados.size() + POR_PAGINA - 1) / POR_PAGINA;
     size_t pagina = 0;
     std::string aviso;
@@ -287,8 +383,10 @@ void Interfaz::mostrarResultados(const std::string& consulta) {
 
         limpiarPantalla();
         mostrarCabecera();
-        std::cout << " RESULTADOS PARA " << descripcion << std::endl;
-        if (resultados.size() == 1) {
+        std::cout << " " << titulo << std::endl;
+        if (tiempo.empty()) {
+            std::cout << " " << resultados.size() << (resultados.size() == 1 ? " pelicula" : " peliculas");
+        } else if (resultados.size() == 1) {
             std::cout << " 1 pelicula encontrada en " << tiempo;
         } else {
             std::cout << " " << resultados.size() << " peliculas encontradas en " << tiempo;
@@ -406,10 +504,13 @@ void Interfaz::mostrarDetalle(const RawMovie& pelicula) {
         }
     }
 
+    const std::string clave = ListasUsuario::clave(pelicula);
     std::string aviso;
     while (true) {
         mostrarLinea('-');
-        std::cout << " [L] Like   [V] Ver mas tarde   (se activan en la entrega final)" << std::endl;
+        std::cout << (listas.tieneLike(clave) ? " [L] Quitar Like" : " [L] Like");
+        std::cout << (listas.estaEnVerMasTarde(clave) ? "   [V] Quitar de Ver mas tarde" : "   [V] Ver mas tarde");
+        std::cout << std::endl;
         std::cout << " [R] Volver a los resultados" << std::endl;
         if (!aviso.empty()) {
             std::cout << " " << aviso << std::endl;
@@ -423,10 +524,15 @@ void Interfaz::mostrarDetalle(const RawMovie& pelicula) {
         if (opcion == "r" || opcion == "R") {
             return;
         }
-        if (opcion == "l" || opcion == "L" || opcion == "v" || opcion == "V") {
-            aviso = "Like y Ver mas tarde estaran disponibles en la entrega final.";
+        if (opcion == "l" || opcion == "L") {
+            bool agregada = listas.alternarLike(clave);
+            recomendadasAlDia = false; //cambian los likes, cambian las recomendadas
+            aviso = agregada ? "Le dio Like a esta pelicula." : "Se quito el Like.";
+        } else if (opcion == "v" || opcion == "V") {
+            bool agregada = listas.alternarVerMasTarde(clave);
+            aviso = agregada ? "Se agrego a Ver mas tarde." : "Se quito de Ver mas tarde.";
         } else {
-            aviso = "Opcion no valida. Escriba R para volver.";
+            aviso = "Opcion no valida. Escriba L, V o R.";
         }
     }
 }

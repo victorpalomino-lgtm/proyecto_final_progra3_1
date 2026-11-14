@@ -4,3 +4,4 @@ cmake-build-debug/
 data/wiki_movie_plots_deduped.csv
 
 cmake-build-release/
+data/listas_usuario.txt
