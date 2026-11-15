@@ -7,13 +7,33 @@ ListasUsuario::ListasUsuario(const std::string& ruta) : ruta(ruta) {
     cargar();
 }
 
+void ListasUsuario::agregarObservador(IObserverLista* observador) {
+    if (observador!= nullptr &&
+        std::find(observadores.begin(), observadores.end(), observador)== observadores.end()) {
+        observadores.push_back(observador);
+    }
+}
+
+void ListasUsuario::eliminarObservador(IObserverLista* observador) {
+    observadores.erase(std::remove(observadores.begin(), observadores.end(), observador),
+                       observadores.end());
+}
+
+void ListasUsuario::notificar(TipoListaUsuario tipo, const std::string& clavePelicula, bool agregada) {
+    for (IObserverLista* obs: observadores) {
+        if (obs!= nullptr) {
+            obs->onCambioLista(tipo, clavePelicula, agregada);
+        }
+    }
+}
+
 std::string ListasUsuario::clave(const RawMovie& pelicula) {
-    return pelicula.title + '\t' + pelicula.releaseYear + '\t' + pelicula.wikiPage;
+    return pelicula.title+'\t'+ pelicula.releaseYear+'\t'+ pelicula.wikiPage;
 }
 
 bool ListasUsuario::alternar(std::vector<std::string>& lista, std::unordered_set<std::string>& conjunto,
                              const std::string& clave) {
-    if (conjunto.count(clave) > 0) {
+    if (conjunto.count(clave)> 0) {
         conjunto.erase(clave);
         lista.erase(std::find(lista.begin(), lista.end(), clave));
         return false;
@@ -24,14 +44,16 @@ bool ListasUsuario::alternar(std::vector<std::string>& lista, std::unordered_set
 }
 
 bool ListasUsuario::alternarLike(const std::string& clave) {
-    bool agregada = alternar(listaLikes, conLike, clave);
+    bool agregada= alternar(listaLikes, conLike, clave);
     guardar(); //se guarda al momento por si el programa se cierra
+    notificar(TipoListaUsuario::Like, clave, agregada);
     return agregada;
 }
 
 bool ListasUsuario::alternarVerMasTarde(const std::string& clave) {
-    bool agregada = alternar(listaVerMasTarde, enVerMasTarde, clave);
+    bool agregada= alternar(listaVerMasTarde, enVerMasTarde, clave);
     guardar();
+    notificar(TipoListaUsuario::VerMasTarde, clave, agregada);
     return agregada;
 }
 

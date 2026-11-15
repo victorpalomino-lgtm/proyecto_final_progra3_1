@@ -3,14 +3,13 @@ project(proyecto_progra3_1)
 
 set(CMAKE_CXX_STANDARD 20)
 find_package(Threads REQUIRED)
-
 # Cada carpeta corresponde a una responsabilidad de la entrega.
 set(LIMPIEZA src/02_limpieza_normalizacion/DataCleaner.cpp)
 set(EXPORTACION src/02_limpieza_normalizacion/CSVWriter.cpp)
 set(ARBOL "src/03_arbol_insercion/MovieTrie(arbol).cpp"
         "src/03_arbol_insercion/IndiceGlobal.cpp")
 set(BUSQUEDA src/04_busqueda/Busqueda.cpp src/04_busqueda/BusquedaComun.cpp
-        src/04_busqueda/BuscadorPeliculas.cpp)
+        src/04_busqueda/BuscadorPeliculas.cpp src/04_busqueda/DecoradorBusqueda.cpp)
 set(INTERFAZ src/05_interfaz_integracion/Interfaz.cpp src/05_interfaz_integracion/ListasUsuario.cpp
         src/05_interfaz_integracion/Recomendador.cpp)
 set(UTILIDADES src/comun/Utilidades.cpp)
@@ -32,9 +31,12 @@ if(BUILD_TESTING)
     add_executable(listas_usuario_tests tests/ListasUsuarioTests.cpp
             src/05_interfaz_integracion/ListasUsuario.cpp src/05_interfaz_integracion/Recomendador.cpp
             ${BUSQUEDA} ${UTILIDADES} ${LIMPIEZA} ${ARBOL})
+    add_executable(patrones_3_4_tests tests/Patrones34Tests.cpp
+            src/05_interfaz_integracion/ListasUsuario.cpp
+            ${BUSQUEDA} ${UTILIDADES} ${LIMPIEZA} ${ARBOL})
 
     foreach(test_target csv_reader_tests data_cleaner_tests csv_writer_tests interfaz_tests
-            indice_global_tests listas_usuario_tests)
+            indice_global_tests listas_usuario_tests patrones_3_4_tests)
         target_include_directories(${test_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
         add_test(NAME ${test_target} COMMAND ${test_target})
     endforeach()

@@ -2,10 +2,10 @@
 
 Plataforma de streaming de películas (C++20, CMake). En esta parte se aplicaron dos patrones:
 
-| Patrón | Tipo | Clases principales | Carpeta |
-|---|---|---|---|
-| Singleton | Creacional | `IndiceGlobal` | `src/03_arbol_insercion/` |
-| Strategy | De comportamiento | `EstrategiaBusqueda`, `BusquedaTexto`, `BusquedaTag`, `BuscadorPeliculas` | `src/04_busqueda/` |
+| Patrón | Tipo | Clases principales                                                         | Carpeta |
+|---|---|----------------------------------------------------------------------------|---|
+| Singleton | Creacional | `IndiceGlobal`                                                             | `src/03_arbol_insercion/` |
+| Strategy | De comportamiento | `EstrategiaBusqueada`, `BusquedaTexto`, `BusquedaTag`, `BuscadorPeliculas` | `src/04_busqueda/` |
 
 Ninguno de los dos cambia el resultado de las búsquedas: se mantienen los puntajes, el orden, la normalización y la coincidencia contigua de frases. Para comprobarlo se comparó la salida del programa antes y después del cambio, con `--limite 1000` y con el dataset completo, y fue idéntica.
 
@@ -233,3 +233,55 @@ Prueba `interfaz_tests` (`tests/InterfazTests.cpp`):
 
 **Pregunta probable:** *"Ya tenían herencia con `Busqueda`; ¿qué cambió realmente?"*
 **Respuesta:** Antes cada objeto de búsqueda guardaba la consulta, así que era "una búsqueda concreta", no "un algoritmo", y la interfaz creaba directamente las clases concretas. Ahora la estrategia es solo el algoritmo y recibe la consulta por parámetro. Existe un contexto (`BuscadorPeliculas`) que guarda la estrategia activa y la puede cambiar en tiempo de ejecución, y la interfaz solo habla con el contexto. Para agregar un nuevo tipo de búsqueda basta con crear otra clase que implemente `EstrategiaBusqueda`, sin modificar `mostrarResultados`.
+
+---
+
+## 3. Decorator — `DecoradorBusqueda`
+
+### Problema que resuelve
+
+- El motor cuenta con estrategias base (`BusquedaTexto` y `BusquedaTag`) que devuelven resultados ordenados por relevancia.
+- Si se desean aplicar restricciones dinámicas sobre los resultados (filtrar por rango de años de estreno, excluir películas guardadas en *Ver más tarde* o limitar el Top-N) mediante herencia directa, habría que crear múltiples combinaciones de subclases (`BusquedaTextoPorAnio`, `BusquedaTagPorAnioSinVistas`, etc.), generando explosión de clases y modificando código ya probado.
+
+### Solución
+
+Se aplicó el patrón **Decorator** envolviendo la interfaz `EstrategiaBusqueda` (`src/04_busqueda/DecoradorBusqueda.h/.cpp`):
+
+| Clase | Rol en Decorator | Responsabilidad |
+|---|---|---|
+| `EstrategiaBusqueda` | **Component** (interfaz) | Contrato común (`ejecutar` y `descripcion`) que comparten estrategias base y decoradores. |
+| `BusquedaTexto` / `BusquedaTag` | **ConcreteComponent** | Ejecutan la búsqueda base sobre el `MovieTrie`. |
+| `DecoradorBusqueda` | **Decorator** (base) | Mantiene un `std::unique_ptr<EstrategiaBusqueda>` y delega la llamada base. |
+| `FiltroAnioBusqueda` | **ConcreteDecorator** | Conserva solo las películas estrenadas dentro de `[anioMin, anioMax]`. |
+| `FiltroExcluirClavesBusqueda` | **ConcreteDecorator** | Filtra películas presentes en un conjunto de claves (ej. ya vistas o en lista). |
+| `FiltroLimiteBusqueda` | **ConcreteDecorator** | Recorta la lista final a los primeros $N$ resultados más relevantes. |
+
+### Por qué se eligió y qué se descartó
+
+- **Se eligió** porque `BuscadorPeliculas` recibe `std::unique_ptr<EstrategiaBusqueda>`, por lo que acepta cualquier estrategia decorada de forma transparente sin cambiar una sola línea en el contexto ni en las estrategias base.
+- **Descartado:** Añadir parámetros opcionales (`anioMin`, `anioMax`, `limite`, `excluidas`) a la firma de `EstrategiaBusqueda::ejecutar(...)`, ya que obligaría a modificar todas las estrategias existentes y las pruebas unitarias previas.
+
+---
+
+## 4. Observer — `IObserverLista`
+
+### Problema que resuelve
+
+- `ListasUsuario` administra las listas persistentes de *Like* y *Ver más tarde*.
+- Cuando el usuario marca o desmarca películas, otros componentes del sistema (como la caché del `Recomendador` o el registro de actividad de sesión) necesitan enterarse del cambio. Si `ListasUsuario` llamara directamente a esos módulos, se generaría acoplamiento fuerte y dependencias circulares dentro de `src/05_interfaz_integracion/`.
+
+### Solución
+
+Se aplicó el patrón **Observer** (`src/05_interfaz_integracion/ObserverLista.h` y `ListasUsuario.h/.cpp`):
+
+| Clase / método | Rol en Observer | Responsabilidad |
+|---|---|---|
+| `IObserverLista` | **Observer** (interfaz) | Define `onCambioLista(TipoListaUsuario, clavePelicula, agregada)`. |
+| `ListasUsuario` | **Subject** (sujeto) | Mantiene la lista de suscriptores (`agregarObservador`, `eliminarObservador`) y ejecuta `notificar(...)` tras cada `alternarLike` o `alternarVerMasTarde`. |
+| `CacheRecomendadorObserver` | **ConcreteObserver** | Invalida la caché de recomendaciones únicamente cuando cambia la lista de *Likes*. |
+| `AuditorListasObserver` | **ConcreteObserver** | Registra en memoria la bitácora de acciones realizadas por el usuario durante la sesión. |
+
+### Por qué se eligió y qué se descartó
+
+- **Se eligió** porque desacopla la persistencia de preferencias del usuario de los efectos secundarios que provocan esos cambios, permitiendo suscribir o desuscribir reacciones en tiempo de ejecución.
+- **Descartado:** Recalcular recomendaciones dentro de `ListasUsuario::alternarLike()`, ya que `ListasUsuario` no debe conocer el catálogo completo (`std::vector<RawMovie>`) ni la lógica de puntaje de `Recomendador`.
