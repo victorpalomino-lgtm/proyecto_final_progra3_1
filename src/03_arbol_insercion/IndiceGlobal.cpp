@@ -7,12 +7,12 @@ IndiceGlobal& IndiceGlobal::instancia() {
     return unica;
 }
 
-bool IndiceGlobal::construir(std::vector<RawMovie> peliculas) {
+bool IndiceGlobal::construir(std::vector<RawMovie> peliculas, IObservadorIndexacion* observador) {
     bool estaLlamadaConstruyo = false;
     std::call_once(unaVez, [&]() {
         try {
             datos = std::move(peliculas);
-            trie.buildIndex(datos); // los IDs del arbol son posiciones de "datos"
+            trie.buildIndex(datos, 0, observador); // 0 = hardware_concurrency hilos; los IDs del arbol son posiciones de "datos"
         } catch (...) {
             datos.clear(); // no dejar un vector sin su arbol; call_once permite reintentar
             throw;

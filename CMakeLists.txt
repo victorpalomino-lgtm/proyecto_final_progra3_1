@@ -3,6 +3,11 @@ project(proyecto_progra3_1)
 
 set(CMAKE_CXX_STANDARD 20)
 find_package(Threads REQUIRED)
+# MovieTrie y las busquedas usan std::thread: todos los ejecutables enlazan Threads.
+link_libraries(Threads::Threads)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-Wall -Wextra)
+endif()
 # Cada carpeta corresponde a una responsabilidad de la entrega.
 set(LIMPIEZA src/02_limpieza_normalizacion/DataCleaner.cpp)
 set(EXPORTACION src/02_limpieza_normalizacion/CSVWriter.cpp)
@@ -17,7 +22,6 @@ set(UTILIDADES src/comun/Utilidades.cpp)
 add_executable(proyecto_progra3_1 main.cpp
         ${LIMPIEZA} ${EXPORTACION} ${ARBOL} ${BUSQUEDA} ${INTERFAZ} ${UTILIDADES})
 target_include_directories(proyecto_progra3_1 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(proyecto_progra3_1 PRIVATE Threads::Threads)
 
 include(CTest)
 if(BUILD_TESTING)
@@ -27,7 +31,6 @@ if(BUILD_TESTING)
     add_executable(interfaz_tests tests/InterfazTests.cpp
             ${BUSQUEDA} ${UTILIDADES} ${LIMPIEZA} ${ARBOL})
     add_executable(indice_global_tests tests/IndiceGlobalTests.cpp ${LIMPIEZA} ${ARBOL})
-    target_link_libraries(indice_global_tests PRIVATE Threads::Threads)
     add_executable(listas_usuario_tests tests/ListasUsuarioTests.cpp
             src/05_interfaz_integracion/ListasUsuario.cpp src/05_interfaz_integracion/Recomendador.cpp
             ${BUSQUEDA} ${UTILIDADES} ${LIMPIEZA} ${ARBOL})

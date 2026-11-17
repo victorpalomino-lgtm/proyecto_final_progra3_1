@@ -20,6 +20,13 @@
 //    vacio y se puede volver a intentar.
 //  - Despues de construir, el estado es de solo lectura (arbol() y peliculas() devuelven
 //    referencias const), asi que varios hilos pueden buscar a la vez sin locks.
+//  - La indexacion en si es paralela (MovieTrie::buildIndex reparte el trabajo en
+//    std::thread::hardware_concurrency() hilos), pero ocurre por completo dentro de
+//    call_once y todos sus hilos se unen (join) antes de marcar "construido". El store con
+//    memory_order_release de "construido" y el load con acquire de estaConstruido()
+//    garantizan que quien ve el indice construido ve tambien el arbol completo.
+//  - Las busquedas paralelas (BusquedaTexto/BusquedaTag) solo leen el arbol y el vector
+//    de peliculas; cada hilo escribe unicamente en su propio vector de resultados.
 //
 // Pruebas: MovieTrie conserva su constructor publico. El Singleton es solo un contenedor
 // y no impide crear Tries locales para inyectarlos (por ejemplo en Interfaz o en las
@@ -43,7 +50,9 @@ public:
 
     // Indexa las peliculas solo la primera vez. Devuelve true si esta llamada
     // construyo el indice y false si ya estaba construido (no se reindexa).
-    bool construir(std::vector<RawMovie> peliculas);
+    // observador (opcional): progreso de la indexacion, notificado siempre desde el hilo
+    // que llama a construir() (ver ObservadorIndexacion.h).
+    bool construir(std::vector<RawMovie> peliculas, IObservadorIndexacion* observador = nullptr);
 
     // Lanzan std::logic_error si el indice todavia no se construyo.
     const MovieTrie& arbol() const;
