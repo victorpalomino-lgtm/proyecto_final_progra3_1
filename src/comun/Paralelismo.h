@@ -8,6 +8,7 @@
 
 #include <chrono>
 #include <condition_variable>
+#include <atomic>
 #include <cstddef>
 #include <exception>
 #include <functional>
@@ -17,9 +18,23 @@
 
 namespace paralelo {
 
-// 0 significa "automatico": std::thread::hardware_concurrency() (o 1 si no se conoce).
+// Numero de hilos por defecto de toda la aplicacion (0 = automatico). Lo fija main con
+// --hilos N antes de construir el indice; es atomico porque lo leen varios hilos.
+inline std::atomic<size_t>& hilosPorDefecto() {
+    static std::atomic<size_t> valor{0};
+    return valor;
+}
+
+inline void fijarHilosPorDefecto(size_t hilos) {
+    hilosPorDefecto().store(hilos, std::memory_order_relaxed);
+}
+
+// 0 significa "automatico": el valor de --hilos si se fijo; si no,
+// std::thread::hardware_concurrency() (o 1 si no se conoce).
 inline size_t resolverHilos(size_t pedidos) {
     if (pedidos > 0) return pedidos;
+    const size_t configurados = hilosPorDefecto().load(std::memory_order_relaxed);
+    if (configurados > 0) return configurados;
     const unsigned hw = std::thread::hardware_concurrency();
     return hw == 0 ? 1 : static_cast<size_t>(hw);
 }
