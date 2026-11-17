@@ -5,3 +5,7 @@ data/wiki_movie_plots_deduped.csv
 
 cmake-build-release/
 data/listas_usuario.txt
+
+# Resultados de bench/comparar_versiones.sh
+bench_*.csv
+bench_*.csv.info

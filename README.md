@@ -40,4 +40,23 @@ ctest --test-dir cmake-build-release --output-on-failure
 
 Para repetir el diagnóstico y la limpieza, agregar `--rebuild-clean`. Requiere el archivo `data/wiki_movie_plots_deduped.csv`, que no está incluido en Git. Sin esa opción, se utiliza `data/movies_clean.csv` si está disponible.
 
-El catálogo completo consumió aproximadamente 1,8 GiB de RAM en las pruebas locales. Los Like y Ver más tarde se guardan en `data/listas_usuario.txt`.
+## Paralelismo y rendimiento
+
+La construcción del índice y la búsqueda usan varios hilos (`std::thread`). Por defecto se usan `std::thread::hardware_concurrency()` hilos; para elegir otro número:
+
+```sh
+./cmake-build-release/proyecto_progra3_1 --hilos 4      # 4 hilos
+./cmake-build-release/proyecto_progra3_1 --hilos 1      # algoritmos secuenciales originales
+```
+
+Los resultados de las búsquedas son idénticos con cualquier número de hilos. Mediciones con el catálogo completo en un Intel Core 5 210H (12 hilos, con batería y perfil `balanced`), comparadas con la versión sin paralelismo:
+
+| Operación | Sin paralelismo | 12 hilos |
+|---|---|---|
+| Construir el índice | 44,1 s | 4,0 s (11,0×) |
+| Búsqueda frecuente (`the`) | 2 426 ms | 244 ms (9,9×) |
+| Sesión de prueba completa de la app | 59,6 s | 15,7 s (3,8×) |
+
+Detalles, metodología y limitaciones en [docs/programacion_paralela.md](docs/programacion_paralela.md). Para repetir las mediciones: `bench/comparar_versiones.sh` y `python3 bench/resumir.py`.
+
+El catálogo completo consumió aproximadamente 1,8 GiB de RAM en las pruebas locales (1,9 GiB con la indexación paralela). Los Like y Ver más tarde se guardan en `data/listas_usuario.txt`.

@@ -12,6 +12,7 @@
 #include "03_arbol_insercion/IndiceGlobal.h"
 #include "05_interfaz_integracion/Interfaz.h"
 #include "comun/Utilidades.h"
+#include "comun/Paralelismo.h"
 #include <cstdlib>
 
 
@@ -47,8 +48,21 @@ int main(int argc, char* argv[]) {
                 return 1;
             }
             i++;
+        } else if (argumento == "--hilos" && i + 1 < argc) {
+            // Hilos para indexar y buscar (por defecto, hardware_concurrency).
+            const std::string value = argv[i + 1];
+            size_t hilos = 0;
+            if (!value.empty() && value.size() <= 4 && value.find_first_not_of("0123456789") == std::string::npos) {
+                hilos = std::stoul(value);
+            }
+            if (hilos == 0) {
+                std::cerr << "--hilos necesita un numero mayor que 0." << std::endl;
+                return 1;
+            }
+            paralelo::fijarHilosPorDefecto(hilos);
+            i++;
         } else {
-            std::cerr << "Uso: " << argv[0] << " [--rebuild-clean] [--limite N]" << std::endl;
+            std::cerr << "Uso: " << argv[0] << " [--rebuild-clean] [--limite N] [--hilos N]" << std::endl;
             return 1;
         }
     }

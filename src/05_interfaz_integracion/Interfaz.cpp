@@ -2,6 +2,7 @@
 #include "05_interfaz_integracion/Recomendador.h"
 #include "comun/Utilidades.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -126,8 +127,33 @@ void Interfaz::mostrarEtapa(const std::string& nombre, const std::string& detall
     std::cout << linea << " " << detalle << std::endl;
 }
 
+// Barra de progreso de la indexacion (patron Observer).
+// La notifica solo el hilo que construye el indice (ver ObservadorIndexacion.h) y solo
+// guarda el avance en atomicos: no imprime ni bloquea, asi no frena la indexacion.
+// El hilo principal lee esos valores y dibuja la barra.
+namespace {
+const size_t ANCHO_BARRA = 20; // cada # es un 5% de las claves insertadas
+
+class BarraProgreso : public IObservadorIndexacion {
+public:
+    std::atomic<size_t> procesadas{0};
+    std::atomic<size_t> total{0};
+
+    void onProgresoIndexacion(size_t hechas, size_t totalClaves) override {
+        total.store(totalClaves, std::memory_order_relaxed);
+        procesadas.store(hechas, std::memory_order_relaxed);
+    }
+
+    size_t marcas() const {
+        const size_t t = total.load(std::memory_order_relaxed);
+        if (t == 0) return 0;
+        return std::min(ANCHO_BARRA, procesadas.load(std::memory_order_relaxed) * ANCHO_BARRA / t);
+    }
+};
+}
+
 // Construye el indice unico (Singleton) en otro hilo. Mientras tanto, el hilo principal
-// imprime un # cada segundo.
+// dibuja la barra con el avance real que informa el observador.
 bool Interfaz::construirIndice(IndiceGlobal& indice, std::vector<RawMovie> peliculas) {
     std::string linea = " [3/3] Construccion del arbol ";
     while (linea.size() < ANCHO_ETAPA) {
@@ -138,10 +164,11 @@ bool Interfaz::construirIndice(IndiceGlobal& indice, std::vector<RawMovie> pelic
     std::atomic<bool> terminado(false);
     std::string error;
     Cronometro reloj;
+    BarraProgreso barra;
 
     std::thread hilo([&]() {
         try {
-            indice.construir(std::move(peliculas));
+            indice.construir(std::move(peliculas), &barra);
         } catch (const std::bad_alloc&) {
             error = "no hay memoria suficiente";
         } catch (const std::exception& e) {
@@ -150,13 +177,15 @@ bool Interfaz::construirIndice(IndiceGlobal& indice, std::vector<RawMovie> pelic
         terminado = true;
     });
 
-    int vueltas = 0;
+    size_t dibujadas = 0;
+    auto dibujar = [&](size_t hasta) {
+        if (hasta <= dibujadas) return;
+        std::cout << std::string(hasta - dibujadas, '#') << std::flush;
+        dibujadas = hasta;
+    };
     while (!terminado) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        vueltas++;
-        if (vueltas % 10 == 0) {
-            std::cout << "#" << std::flush;
-        }
+        dibujar(barra.marcas());
     }
     hilo.join(); // despues del join ya se puede leer "error" sin problemas
 
@@ -166,6 +195,7 @@ bool Interfaz::construirIndice(IndiceGlobal& indice, std::vector<RawMovie> pelic
         std::cerr << "Pruebe con menos peliculas usando el argumento --limite N" << std::endl;
         return false;
     }
+    dibujar(ANCHO_BARRA);
     std::cout << " listo, " << indice.peliculas().size() << " peliculas (" << reloj << ")" << std::endl;
     return true;
 }
