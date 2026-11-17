@@ -23,6 +23,10 @@ add_executable(proyecto_progra3_1 main.cpp
         ${LIMPIEZA} ${EXPORTACION} ${ARBOL} ${BUSQUEDA} ${INTERFAZ} ${UTILIDADES})
 target_include_directories(proyecto_progra3_1 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
+# Benchmark de indexacion y busqueda (no es una prueba de ctest).
+add_executable(benchmark bench/Benchmark.cpp ${LIMPIEZA} ${ARBOL} ${BUSQUEDA} ${UTILIDADES})
+target_include_directories(benchmark PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
 include(CTest)
 if(BUILD_TESTING)
     add_executable(csv_reader_tests tests/CSVReaderTests.cpp ${LIMPIEZA} ${EXPORTACION})
