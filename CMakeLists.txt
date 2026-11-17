@@ -41,10 +41,13 @@ if(BUILD_TESTING)
     add_executable(patrones_3_4_tests tests/Patrones34Tests.cpp
             src/05_interfaz_integracion/ListasUsuario.cpp
             ${BUSQUEDA} ${UTILIDADES} ${LIMPIEZA} ${ARBOL})
+    add_executable(paralelo_tests tests/ParaleloTests.cpp ${BUSQUEDA} ${UTILIDADES} ${LIMPIEZA} ${ARBOL})
 
     foreach(test_target csv_reader_tests data_cleaner_tests csv_writer_tests interfaz_tests
-            indice_global_tests listas_usuario_tests patrones_3_4_tests)
+            indice_global_tests listas_usuario_tests patrones_3_4_tests paralelo_tests)
         target_include_directories(${test_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
         add_test(NAME ${test_target} COMMAND ${test_target})
     endforeach()
+    # Solo lee data/movies_clean.csv (si no existe, omite esa parte): se corre desde la raiz.
+    set_tests_properties(paralelo_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
