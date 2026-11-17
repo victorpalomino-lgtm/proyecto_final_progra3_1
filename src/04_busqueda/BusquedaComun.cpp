@@ -2,6 +2,7 @@
 #include "02_limpieza_normalizacion/DataCleaner.h"
 
 #include <sstream>
+#include <utility>
 
 namespace busqueda_interna {
 
@@ -45,13 +46,34 @@ bool contiene(const std::string& campo, const std::string& texto) {
     return !texto.empty() && campo.find(texto) != std::string::npos;
 }
 
+CamposNormalizados normalizarCampos(const RawMovie& pelicula) {
+    CamposNormalizados campos;
+    campos.titulo = DataCleaner::normalizeForSearch(pelicula.title);
+    campos.sinopsis = DataCleaner::normalizeForSearch(pelicula.plot);
+    campos.director = DataCleaner::normalizeForSearch(pelicula.director);
+    campos.reparto = DataCleaner::normalizeForSearch(pelicula.cast);
+    campos.genero = DataCleaner::normalizeForSearch(pelicula.genre);
+    return campos;
+}
+
+bool algunCampoContiene(const CamposNormalizados& campos, const std::string& frase) {
+    return contiene(campos.titulo, frase) || contiene(campos.sinopsis, frase) ||
+           contiene(campos.director, frase) || contiene(campos.reparto, frase) ||
+           contiene(campos.genero, frase);
+}
+
 int puntajeTexto(const RawMovie& pelicula, const std::string& frase,
                  const std::vector<std::string>& terminos) {
-    std::string titulo = DataCleaner::normalizeForSearch(pelicula.title);
-    std::string director = DataCleaner::normalizeForSearch(pelicula.director);
-    std::string reparto = DataCleaner::normalizeForSearch(pelicula.cast);
-    std::string genero = DataCleaner::normalizeForSearch(pelicula.genre);
-    std::string sinopsis = DataCleaner::normalizeForSearch(pelicula.plot);
+    return puntajeTexto(normalizarCampos(pelicula), frase, terminos);
+}
+
+int puntajeTexto(const CamposNormalizados& campos, const std::string& frase,
+                 const std::vector<std::string>& terminos) {
+    const std::string& titulo = campos.titulo;
+    const std::string& director = campos.director;
+    const std::string& reparto = campos.reparto;
+    const std::string& genero = campos.genero;
+    const std::string& sinopsis = campos.sinopsis;
 
     int puntaje = 0;
     if (titulo == frase) {
@@ -81,7 +103,11 @@ int puntajeTexto(const RawMovie& pelicula, const std::string& frase,
 
 int puntajeCampo(const std::string& valor, const std::string& frase,
                  const std::vector<std::string>& terminos) {
-    std::string campo = DataCleaner::normalizeForSearch(valor);
+    return puntajeCampoNormalizado(DataCleaner::normalizeForSearch(valor), frase, terminos);
+}
+
+int puntajeCampoNormalizado(const std::string& campo, const std::string& frase,
+                            const std::vector<std::string>& terminos) {
     int puntaje = 0;
     if (contiene(campo, frase)) {
         puntaje += 40;
@@ -95,10 +121,14 @@ int puntajeCampo(const std::string& valor, const std::string& frase,
 }
 
 Resultado crearResultado(size_t id, const RawMovie& pelicula) {
+    return crearResultado(id, pelicula, DataCleaner::normalizeForSearch(pelicula.title));
+}
+
+Resultado crearResultado(size_t id, const RawMovie& pelicula, std::string tituloNormalizado) {
     Resultado resultado;
     resultado.id = id;
     resultado.pelicula = &pelicula;
-    resultado.tituloOrden = DataCleaner::normalizeForSearch(pelicula.title);
+    resultado.tituloOrden = std::move(tituloNormalizado);
     return resultado;
 }
 

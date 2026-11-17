@@ -3,9 +3,64 @@
 #include "02_limpieza_normalizacion/DataCleaner.h"
 #include "comun/Utilidades.h"
 
+#include "comun/Paralelismo.h"
+
 #include <algorithm>
+#include <atomic>
+#include <iterator>
+#include <unordered_set>
+#include <utility>
 
 using namespace busqueda_interna;
+
+namespace {
+
+// Candidatos que toma un hilo de una vez. Bloques chicos con reparto dinamico equilibran
+// la carga aunque los candidatos tengan sinopsis de largos distintos y aunque el CPU tenga
+// nucleos de distinta velocidad (P-cores y E-cores).
+constexpr size_t BLOQUE_CANDIDATOS = 32;
+
+// Verifica y puntua los candidatos, en uno o varios hilos, y devuelve los resultados ordenados.
+// procesar(id, salida) agrega a "salida" el resultado del candidato id (si corresponde).
+//
+// Datos compartidos: "lista" y "siguiente" (atomic). procesar() solo lee el arbol y las
+// peliculas. Cada hilo h escribe unicamente en partes[h]; la union se hace despues del
+// join, en el hilo que llamo.
+template <typename Procesar>
+std::vector<Resultado> procesarCandidatos(const std::unordered_set<size_t>& ids, size_t hilos,
+                                          size_t umbral, const Procesar& procesar) {
+    std::vector<Resultado> resultados;
+    hilos = paralelo::resolverHilos(hilos);
+    // No lanzar mas hilos que bloques de trabajo.
+    hilos = std::min(hilos, (ids.size() + BLOQUE_CANDIDATOS - 1) / BLOQUE_CANDIDATOS);
+
+    if (hilos <= 1 || ids.size() < umbral) {
+        for (size_t id : ids) procesar(id, resultados);
+    } else {
+        const std::vector<size_t> lista(ids.begin(), ids.end());
+        std::vector<std::vector<Resultado>> partes(hilos);
+        std::atomic<size_t> siguiente{0};
+        paralelo::ejecutarEnHilos(hilos, [&](size_t h) {
+            for (;;) {
+                const size_t inicio = siguiente.fetch_add(BLOQUE_CANDIDATOS, std::memory_order_relaxed);
+                if (inicio >= lista.size()) break;
+                const size_t fin = std::min(lista.size(), inicio + BLOQUE_CANDIDATOS);
+                for (size_t i = inicio; i < fin; ++i) procesar(lista[i], partes[h]);
+            }
+        });
+        size_t total = 0;
+        for (const auto& parte : partes) total += parte.size();
+        resultados.reserve(total);
+        for (auto& parte : partes) {
+            std::move(parte.begin(), parte.end(), std::back_inserter(resultados));
+        }
+    }
+
+    std::sort(resultados.begin(), resultados.end()); // usa Resultado::operator<
+    return resultados;
+}
+
+} // namespace
 
 const size_t ANCHO_TITULO = 40;
 const size_t ANCHO_DIRECTOR = 18;
@@ -42,44 +97,38 @@ std::ostream& operator<<(std::ostream& os, const Resultado& resultado) {
 }
 
 
+BusquedaTexto::BusquedaTexto(size_t hilos, size_t umbral) : hilos(hilos), umbral(umbral) {
+}
+
 // Trie: O(min(m,3) + candidatos), ademas de normalizacion, confirmacion y ordenamiento.
 std::vector<Resultado> BusquedaTexto::ejecutar(const std::string& consulta, const MovieTrie& arbol,
                                                const std::vector<RawMovie>& peliculas) const {
     // Se usa la misma funcion que el arbol para que ambos comparen igual
     const std::string textoNormalizado = DataCleaner::normalizeForSearch(consulta);
 
-    std::vector<Resultado> resultados;
-    std::vector<std::string> terminos = separarTerminos(textoNormalizado);
+    const std::vector<std::string> terminos = separarTerminos(textoNormalizado);
     if (terminos.empty()) {
-        return resultados;
+        return {};
     }
 
     // La consulta completa debe aparecer de forma contigua en un campo.
     const auto ids = arbol.searchSubstring(textoNormalizado);
 
-    for (size_t id : ids) {
+    return procesarCandidatos(ids, hilos, umbral, [&](size_t id, std::vector<Resultado>& salida) {
         if (id >= peliculas.size()) {
-            continue;
+            return;
         }
-        const auto& pelicula = peliculas[id];
-        bool coincide = false;
-        for (const auto* campo : {&pelicula.title, &pelicula.plot, &pelicula.director,
-                                  &pelicula.cast, &pelicula.genre}) {
-            if (contiene(DataCleaner::normalizeForSearch(*campo), textoNormalizado)) {
-                coincide = true;
-                break;
-            }
+        const RawMovie& pelicula = peliculas[id];
+        // Cada campo se normaliza una sola vez y se reutiliza para verificar y puntuar.
+        CamposNormalizados campos = normalizarCampos(pelicula);
+        if (!algunCampoContiene(campos, textoNormalizado)) return;
+        const int prioridad = puntajeTexto(campos, textoNormalizado, terminos);
+        if (prioridad > 0) {
+            Resultado resultado = crearResultado(id, pelicula, std::move(campos.titulo));
+            resultado.prioridad = prioridad;
+            salida.push_back(std::move(resultado));
         }
-        if (!coincide) continue;
-        Resultado resultado = crearResultado(id, peliculas[id]);
-        resultado.prioridad = puntajeTexto(peliculas[id], textoNormalizado, terminos);
-        if (resultado.prioridad > 0) {
-            resultados.push_back(resultado);
-        }
-    }
-
-    std::sort(resultados.begin(), resultados.end()); // usa Resultado::operator<
-    return resultados;
+    });
 }
 
 std::string BusquedaTexto::descripcion(const std::string& consulta) const {
@@ -87,7 +136,8 @@ std::string BusquedaTexto::descripcion(const std::string& consulta) const {
 }
 
 
-BusquedaTag::BusquedaTag(FieldType campo) : campo(campo) {
+BusquedaTag::BusquedaTag(FieldType campo, size_t hilos, size_t umbral)
+    : campo(campo), hilos(hilos), umbral(umbral) {
 }
 
 const std::string& BusquedaTag::valorCampo(const RawMovie& pelicula) const {
@@ -111,29 +161,28 @@ std::vector<Resultado> BusquedaTag::ejecutar(const std::string& consulta, const 
                                              const std::vector<RawMovie>& peliculas) const {
     const std::string textoNormalizado = DataCleaner::normalizeForSearch(consulta);
 
-    std::vector<Resultado> resultados;
-    std::vector<std::string> terminos = separarTerminos(textoNormalizado);
+    const std::vector<std::string> terminos = separarTerminos(textoNormalizado);
     if (terminos.empty()) {
-        return resultados;
+        return {};
     }
 
     const auto candidatos = arbol.searchSubstring(textoNormalizado);
 
-    for (size_t id : candidatos) {
+    return procesarCandidatos(candidatos, hilos, umbral, [&](size_t id, std::vector<Resultado>& salida) {
         if (id >= peliculas.size()) {
-            continue;
+            return;
         }
         const RawMovie& pelicula = peliculas[id];
-        if (!contiene(DataCleaner::normalizeForSearch(valorCampo(pelicula)), textoNormalizado)) continue;
-        Resultado resultado = crearResultado(id, pelicula);
-        resultado.prioridad = puntajeCampo(valorCampo(pelicula), textoNormalizado, terminos);
-        if (resultado.prioridad > 0) {
-            resultados.push_back(resultado);
+        // El campo se normaliza una sola vez para verificar y puntuar.
+        const std::string campoNormalizado = DataCleaner::normalizeForSearch(valorCampo(pelicula));
+        if (!contiene(campoNormalizado, textoNormalizado)) return;
+        const int prioridad = puntajeCampoNormalizado(campoNormalizado, textoNormalizado, terminos);
+        if (prioridad > 0) {
+            Resultado resultado = crearResultado(id, pelicula);
+            resultado.prioridad = prioridad;
+            salida.push_back(std::move(resultado));
         }
-    }
-
-    std::sort(resultados.begin(), resultados.end());
-    return resultados;
+    });
 }
 
 std::string BusquedaTag::descripcion(const std::string& consulta) const {
