@@ -1,3 +1,14 @@
+Captura de una sesion real de la aplicacion (18-11-2026), generada con:
+  ./cmake-build-release/proyecto_progra3_1 --limite 1000
+con la salida redirigida (por eso cada pantalla nueva empieza con una linea en blanco
+en vez de borrar la terminal). Son dos ejecuciones seguidas:
+  1) busqueda por frase "y/o" (ghost ship), paginacion, detalle, Like, Ver mas tarde,
+     filtro [X], tag de director (griffith), sub-palabra (detect) y recomendadas;
+  2) se vuelve a abrir la app: Ver mas tarde y las recomendaciones siguen ahi
+     (persistencia en data/listas_usuario.txt).
+Los tiempos dependen del equipo.
+
+######## EJECUCION 1 ########
 
 ================================================================================
                             PLATAFORMA DE STREAMING
@@ -5,61 +16,29 @@
 ================================================================================
  Cargando la base de datos...
 
- [1/3] Lectura del CSV original ...... 34886 registros (2.11 s)
-
-=======================================================
-        INFORME DE DIAGNOSTICO - CSV ORIGINAL          
-=======================================================
-Total de filas leidas: 34886
-Filas con columnas inconsistentes: 0
-Paginas Wiki duplicadas: 816
-Peliculas duplicadas (Titulo+Ano): 278
-Bytes no ASCII (no implica corrupcion): 98693
--------------------------------------------------------
-Valores faltantes por columna:
- - Release Year       | Vacios: 0      (0.0 %) | 'Unknown': 0
- - Title              | Vacios: 0      (0.0 %) | 'Unknown': 2
- - Origin/Ethnicity   | Vacios: 0      (0.0 %) | 'Unknown': 0
- - Director           | Vacios: 8      (0.0 %) | 'Unknown': 1124
- - Cast               | Vacios: 1454   (4.2 %) | 'Unknown': 1
- - Genre              | Vacios: 28     (0.1 %) | 'Unknown': 6083
- - Wiki Page          | Vacios: 0      (0.0 %) | 'Unknown': 0
- - Plot               | Vacios: 0      (0.0 %) | 'Unknown': 0
-=======================================================
-
- [2/3] Limpieza ...................... 34886 registros limpios (1.62 s)
-
-INFORME DE PREPROCESAMIENTO - INTEGRANTE 2
-Registros procesados (todos conservados): 34886
-Campos modificados: 33123
-Espacios sobrantes eliminados: 100584
-Espacios no separables reemplazados: 1504
-Caracteres de control reemplazados: 198554
-Caracteres invisibles eliminados: 6
- - Release Year | Vacios: 0 | Marcadores faltantes: 0
- - Title | Vacios: 0 | Marcadores faltantes: 0
- - Origin/Ethnicity | Vacios: 0 | Marcadores faltantes: 0
- - Director | Vacios: 8 | Marcadores faltantes: 1124
- - Cast | Vacios: 1454 | Marcadores faltantes: 1
- - Genre | Vacios: 28 | Marcadores faltantes: 6086
- - Wiki Page | Vacios: 0 | Marcadores faltantes: 0
- - Plot | Vacios: 0 | Marcadores faltantes: 0
-Total de campos vacios detectados: 1490
-Total de marcadores convertidos a vacio: 7211
-Total de campos faltantes finales: 8701
-CSV limpio guardado en: data/movies_clean.csv
-
- [3/3] Construccion del arbol ........ ################################ listo, 34886 peliculas (32.23 s)
+ [1/3] Lectura del CSV ............... 34886 peliculas (2.14 s)
+ [2/3] Limpieza ...................... ya aplicada, se usa data/movies_clean.csv
+ Aviso: solo se usan las primeras 1000 peliculas (--limite).
+ [3/3] Construccion del arbol ........ #################### listo, 1000 peliculas (0.20 s)
 
  Todo listo. Presione Enter para ir al menu principal...
 ================================================================================
                             PLATAFORMA DE STREAMING
                     Busqueda de peliculas - Programacion III
 ================================================================================
- Peliculas disponibles: 34886
+ Peliculas disponibles: 1000
+--------------------------------------------------------------------------------
+ VER MAS TARDE
+ Todavia no agrego peliculas. Use [V] en el detalle de una pelicula.
+--------------------------------------------------------------------------------
+ RECOMENDADAS PARA USTED
+ De Like a una pelicula para recibir recomendaciones.
 --------------------------------------------------------------------------------
  1. Buscar por palabra, frase o parte de una palabra
  2. Buscar por tag (director, reparto o genero)
+ 3. Ver mas tarde
+ 4. Mis Likes
+ 5. Todas las recomendadas
  0. Salir
 --------------------------------------------------------------------------------
  Elija una opcion: 
@@ -71,7 +50,9 @@ CSV limpio guardado en: data/movies_clean.csv
 --------------------------------------------------------------------------------
  Puede escribir una palabra (ship), una frase (ghost ship)
  o solo una parte de una palabra (bar).
- Las frases se buscan completas y en el mismo orden.
+ Una frase encuentra peliculas con cualquiera de sus palabras: primero
+ las que tienen la frase completa, luego las que tienen todas las palabras
+ y despues las que tienen solo algunas.
  Las sinopsis estan en ingles, por eso conviene buscar en ingles.
  Deje el texto vacio y presione Enter para volver al menu.
 --------------------------------------------------------------------------------
@@ -81,99 +62,158 @@ CSV limpio guardado en: data/movies_clean.csv
                     Busqueda de peliculas - Programacion III
 ================================================================================
  RESULTADOS PARA "ghost ship"
- 4 peliculas encontradas en 0.15 s   |   Pagina 1 de 1
+ 163 peliculas encontradas en 0.01 s   |   Pagina 1 de 33
 --------------------------------------------------------------------------------
- 1. Ghost Ship (2002)                        | Steve Beck         | horror
- 2. Ghost Ship (1952)                        | Vernon Sewell      | thriller
- 3. The Ghost Ship (1943)                    | Mark Robson        | drama
- 4. Pirates of the High Seas (1950)          | Spencer Gordon...  | serial
+ 1. 20,000 Leagues Under the Sea (1916)      | Stuart Paton       | action ad...
+ 2. Birth of a Nation (1915)                 | D. W. Griffith     | epic
+ 3. Phantom of the Opera (1925)              | Rupert Julian      | horror
+ 4. The Ghost of Slumber Mountain (1918)     | Willis O'Brien     | fantasy
+ 5. A Christmas Carol (1908)                 | -                  | drama
 --------------------------------------------------------------------------------
- [1-4] Ver pelicula   [M] Menu
+ [1-5] Ver pelicula   [S] Siguientes 5   [M] Menu
  Elija una opcion: 
 ================================================================================
- Ghost Ship (2002)
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
 ================================================================================
- Estreno   : 2002
+ RESULTADOS PARA "ghost ship"
+ 163 peliculas encontradas en 0.01 s   |   Pagina 2 de 33
+--------------------------------------------------------------------------------
+ 1. A Christmas Carol (1910)                 | J. Searle Dawley   | -
+ 2. A Fool There Was (1915)                  | Frank Powell       | drama
+ 3. A Girl in Every Port (1928)              | Howard Hawks       | romantic...
+ 4. A Sailor-Made Man (1921)                 | Fred C. Newmeyer   | comedy
+ 5. A Woman of Affairs (1928)                | Clarence Brown     | melodrama
+--------------------------------------------------------------------------------
+ [1-5] Ver pelicula   [S] Siguientes 5   [A] Anteriores   [M] Menu
+ Elija una opcion: 
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ RESULTADOS PARA "ghost ship"
+ 163 peliculas encontradas en 0.01 s   |   Pagina 1 de 33
+--------------------------------------------------------------------------------
+ 1. 20,000 Leagues Under the Sea (1916)      | Stuart Paton       | action ad...
+ 2. Birth of a Nation (1915)                 | D. W. Griffith     | epic
+ 3. Phantom of the Opera (1925)              | Rupert Julian      | horror
+ 4. The Ghost of Slumber Mountain (1918)     | Willis O'Brien     | fantasy
+ 5. A Christmas Carol (1908)                 | -                  | drama
+--------------------------------------------------------------------------------
+ [1-5] Ver pelicula   [S] Siguientes 5   [M] Menu
+ Elija una opcion: 
+================================================================================
+ 20,000 Leagues Under the Sea (1916)
+================================================================================
+ Estreno   : 1916
  Origen    : American
- Director  : Steve Beck
- Reparto   : Gabriel Byrne, Julianna Margulies, Desmond Harrington, Isaiah
-             Washington, Karl Urban, Emily Browning
- Genero    : horror
- Wikipedia : https://en.wikipedia.org/wiki/Ghost_Ship_(2002_film)
+ Director  : Stuart Paton
+ Reparto   : Lois Alexander, Curtis Benton, Wallace Clarke, Allen Holubar
+ Genero    : action adventure
+ Wikipedia : https://en.wikipedia.org/wiki/20,000_Leagues_Under_the_Sea_(1916_film)
 --------------------------------------------------------------------------------
  SINOPSIS
 
- In May 1962, aboard the Italian ocean liner SS Antonia Graza, dozens of
- wealthy passengers dance to the song "Senza Fine" sung by Francesca, an
- Italian lounge singer. A young girl, Katie Harwood, sits alone until the
- ship's captain offers to dance with her on the exterior dance floor.
- Elsewhere, a hand presses a lever that unravels a thin wire cord from a spool.
- The spool snaps and the wire whips across the dance floor, bisecting the
- dancers. Forty years later, at a bar, a boat salvage crew — Captain Sean
- Murphy, Maureen Epps, Greer, Dodge, Munder, and Santos — celebrate their
- recent success. Jack Ferriman, a Canadian weather service pilot, approaches
- them and says he spotted a vessel adrift in the Bering Sea. Because the ship
- is in international waters, it can be claimed by whoever brings it to port.
- The crew sets out on the Arctic Warrior, an ocean salvage tugboat. The ship is
- the Antonia Graza, which was believed to be lost at sea. As they prepare to
- tow it, they discover it contains a large quantity of gold. After a series of
- supernatural events, the group decides to abandon the salvage effort but take
- the gold, but an invisible force sabotages the Arctic Warrior. The tugboat
- explodes as its engine is restarted, killing Santos. Left with no other
- option, the group begins repairing the Antonia Graza. Greer encounters
- [Enter] Seguir leyendo   [Q] Dejar de leer:  (Quedaron 43 lineas sin mostrar)
+ A strange giant "sea creature" has been rampaging the seas. The American naval
+ ship Abraham Lincoln is sent to investigate, but is rammed by "the creature"
+ which turns out to be The Nautilus, the fantastic submarine of the enigmatic
+ Captain Nemo, and "Rudderless, the 'Abraham Lincoln' drifts on". Then, in "A
+ strange rescue" he guides the sub to surface under those pitched overboard and
+ his crew take them, including Professor Aronnax, and his daughter (who are
+ French) below through a hatch in the surface of the deck. After they pledge
+ not to escape, Nemo shows them the wonders of the underwater world, and even
+ takes them hunting on the sea floor. Meanwhile, soldiers in a runaway Union
+ Army Balloon are marooned on a mysterious island not far from the submarine.
+ They find a wild girl living alone on the island ("a child of nature"). The
+ yacht of Charles Denver arrives at the island. A former Indian colonial
+ officer, he has been haunted by the ghost of a woman (Princess Daaker) that he
+ attacked years ago; she stabbed herself rather than submit to him. He fled
+ with her young daughter and then abandoned the child on the island. The
+ long-tormented Denver has returned to see what became of her. One of the Union
+ soldiers schemes and kidnaps the wild girl onto Denver's yacht. Another
+ soldier swims aboard to rescue her. At the same time, Nemo discovers that the
+ [Enter] Seguir leyendo   [Q] Dejar de leer:  (Quedaron 8 lineas sin mostrar)
 --------------------------------------------------------------------------------
- [L] Like   [V] Ver mas tarde   (se activan en la entrega final)
+ [L] Like   [V] Ver mas tarde
  [R] Volver a los resultados
+ Elija una opcion: --------------------------------------------------------------------------------
+ [L] Quitar Like   [V] Ver mas tarde
+ [R] Volver a los resultados
+ Le dio Like a esta pelicula.
+ Elija una opcion: --------------------------------------------------------------------------------
+ [L] Quitar Like   [V] Quitar de Ver mas tarde
+ [R] Volver a los resultados
+ Se agrego a Ver mas tarde.
  Elija una opcion: 
 ================================================================================
                             PLATAFORMA DE STREAMING
                     Busqueda de peliculas - Programacion III
 ================================================================================
  RESULTADOS PARA "ghost ship"
- 4 peliculas encontradas en 0.15 s   |   Pagina 1 de 1
+ 163 peliculas encontradas en 0.01 s   |   Pagina 1 de 33
 --------------------------------------------------------------------------------
- 1. Ghost Ship (2002)                        | Steve Beck         | horror
- 2. Ghost Ship (1952)                        | Vernon Sewell      | thriller
- 3. The Ghost Ship (1943)                    | Mark Robson        | drama
- 4. Pirates of the High Seas (1950)          | Spencer Gordon...  | serial
+ 1. 20,000 Leagues Under the Sea (1916)      | Stuart Paton       | action ad...
+ 2. Birth of a Nation (1915)                 | D. W. Griffith     | epic
+ 3. Phantom of the Opera (1925)              | Rupert Julian      | horror
+ 4. The Ghost of Slumber Mountain (1918)     | Willis O'Brien     | fantasy
+ 5. A Christmas Carol (1908)                 | -                  | drama
 --------------------------------------------------------------------------------
- [1-4] Ver pelicula   [M] Menu
+ [1-5] Ver pelicula   [S] Siguientes 5   [M] Menu
+ [X] Ocultar las que tienen Like o estan en Ver mas tarde
  Elija una opcion: 
 ================================================================================
                             PLATAFORMA DE STREAMING
                     Busqueda de peliculas - Programacion III
 ================================================================================
- Peliculas disponibles: 34886
+ RESULTADOS PARA "ghost ship" [Sin guardadas]
+ 162 peliculas encontradas en 0.01 s   |   Pagina 1 de 33
 --------------------------------------------------------------------------------
- 1. Buscar por palabra, frase o parte de una palabra
- 2. Buscar por tag (director, reparto o genero)
- 0. Salir
+ 1. Birth of a Nation (1915)                 | D. W. Griffith     | epic
+ 2. Phantom of the Opera (1925)              | Rupert Julian      | horror
+ 3. The Ghost of Slumber Mountain (1918)     | Willis O'Brien     | fantasy
+ 4. A Christmas Carol (1908)                 | -                  | drama
+ 5. A Christmas Carol (1910)                 | J. Searle Dawley   | -
 --------------------------------------------------------------------------------
+ [1-5] Ver pelicula   [S] Siguientes 5   [M] Menu
+ [X] Mostrar tambien las guardadas
  Elija una opcion: 
 ================================================================================
                             PLATAFORMA DE STREAMING
                     Busqueda de peliculas - Programacion III
 ================================================================================
- BUSQUEDA POR TEXTO
+ RESULTADOS PARA "ghost ship"
+ 163 peliculas encontradas en 0.00 s   |   Pagina 1 de 33
 --------------------------------------------------------------------------------
- Puede escribir una palabra (ship), una frase (ghost ship)
- o solo una parte de una palabra (bar).
- Las frases se buscan completas y en el mismo orden.
- Las sinopsis estan en ingles, por eso conviene buscar en ingles.
- Deje el texto vacio y presione Enter para volver al menu.
+ 1. 20,000 Leagues Under the Sea (1916)      | Stuart Paton       | action ad...
+ 2. Birth of a Nation (1915)                 | D. W. Griffith     | epic
+ 3. Phantom of the Opera (1925)              | Rupert Julian      | horror
+ 4. The Ghost of Slumber Mountain (1918)     | Willis O'Brien     | fantasy
+ 5. A Christmas Carol (1908)                 | -                  | drama
 --------------------------------------------------------------------------------
- Buscar: 
- No se encontraron peliculas para "zzzznonexistentzzzz".
- Presione Enter para volver al menu...
+ [1-5] Ver pelicula   [S] Siguientes 5   [M] Menu
+ [X] Ocultar las que tienen Like o estan en Ver mas tarde
+ Elija una opcion: 
 ================================================================================
                             PLATAFORMA DE STREAMING
                     Busqueda de peliculas - Programacion III
 ================================================================================
- Peliculas disponibles: 34886
+ Peliculas disponibles: 1000
+--------------------------------------------------------------------------------
+ VER MAS TARDE
+ - 20,000 Leagues Under the Sea (1916)      | Stuart Paton       | action ad...
+--------------------------------------------------------------------------------
+ RECOMENDADAS PARA USTED (5 de 41)
+ - A Modern Musketeer (1917)                | Allan Dwan         | adventure
+ - Across the Pacific (1926)                | Roy Del Ruth       | adventure
+ - Adventure (1925)                         | Victor Fleming     | adventure
+ - Carmen (1915)                            | Cecil B. DeMille   | adventure
+ - Don Juan (1926)                          | Alan Crosland      | adventure
 --------------------------------------------------------------------------------
  1. Buscar por palabra, frase o parte de una palabra
  2. Buscar por tag (director, reparto o genero)
+ 3. Ver mas tarde
+ 4. Mis Likes
+ 5. Todas las recomendadas
  0. Salir
 --------------------------------------------------------------------------------
  Elija una opcion: 
@@ -193,14 +233,109 @@ CSV limpio guardado en: data/movies_clean.csv
                             PLATAFORMA DE STREAMING
                     Busqueda de peliculas - Programacion III
 ================================================================================
- RESULTADOS PARA director "spielberg"
- 31 peliculas encontradas en 0.01 s   |   Pagina 1 de 7
+ RESULTADOS PARA director "griffith"
+ 44 peliculas encontradas en 0.00 s   |   Pagina 1 de 9
 --------------------------------------------------------------------------------
- 1. 1941 (1979)                              | Steven Spielberg   | -
- 2. A.I. Artificial Intelligence (2001)      | Steven Spielberg   | science f...
- 3. Always (1989)                            | Steven Spielberg   | fantasy,...
- 4. Amistad (1997)                           | Steven Spielberg   | drama
- 5. Catch Me If You Can (2002)               | Steven Spielberg   | comedy, d...
+ 1. A Calamitous Elopement (1908)            | D.W. Griffith      | comedy
+ 2. A Drunkard's Reformation (1909)          | D. W. Griffith     | drama
+ 3. A Romance of Happy Valley (1919)         | D.W. Griffith      | drama
+ 4. Abraham Lincoln (1930)                   | D. W. Griffith     | drama
+ 5. America (1924)                           | D. W. Griffith     | historical
+--------------------------------------------------------------------------------
+ [1-5] Ver pelicula   [S] Siguientes 5   [M] Menu
+ [X] Ocultar las que tienen Like o estan en Ver mas tarde
+ Elija una opcion: 
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ Peliculas disponibles: 1000
+--------------------------------------------------------------------------------
+ VER MAS TARDE
+ - 20,000 Leagues Under the Sea (1916)      | Stuart Paton       | action ad...
+--------------------------------------------------------------------------------
+ RECOMENDADAS PARA USTED (5 de 41)
+ - A Modern Musketeer (1917)                | Allan Dwan         | adventure
+ - Across the Pacific (1926)                | Roy Del Ruth       | adventure
+ - Adventure (1925)                         | Victor Fleming     | adventure
+ - Carmen (1915)                            | Cecil B. DeMille   | adventure
+ - Don Juan (1926)                          | Alan Crosland      | adventure
+--------------------------------------------------------------------------------
+ 1. Buscar por palabra, frase o parte de una palabra
+ 2. Buscar por tag (director, reparto o genero)
+ 3. Ver mas tarde
+ 4. Mis Likes
+ 5. Todas las recomendadas
+ 0. Salir
+--------------------------------------------------------------------------------
+ Elija una opcion: 
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ BUSQUEDA POR TEXTO
+--------------------------------------------------------------------------------
+ Puede escribir una palabra (ship), una frase (ghost ship)
+ o solo una parte de una palabra (bar).
+ Una frase encuentra peliculas con cualquiera de sus palabras: primero
+ las que tienen la frase completa, luego las que tienen todas las palabras
+ y despues las que tienen solo algunas.
+ Las sinopsis estan en ingles, por eso conviene buscar en ingles.
+ Deje el texto vacio y presione Enter para volver al menu.
+--------------------------------------------------------------------------------
+ Buscar: 
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ RESULTADOS PARA "detect"
+ 36 peliculas encontradas en 0.00 s   |   Pagina 1 de 8
+--------------------------------------------------------------------------------
+ 1. Hemlock Hoax, the Detective (1910)       | -                  | comedy
+ 2. Trent's Last Case (1929)                 | Howard Hawks       | detective
+ 3. The Mysterious Dr. Fu Manchu (1929)      | Rowland V. Lee     | detective
+ 4. Alias French Gertie (1930)               | George Archainbaud | crime
+ 5. Alias Jimmy Valentine (1928)             | Jack Conway        | crime
+--------------------------------------------------------------------------------
+ [1-5] Ver pelicula   [S] Siguientes 5   [M] Menu
+ [X] Ocultar las que tienen Like o estan en Ver mas tarde
+ Elija una opcion: 
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ Peliculas disponibles: 1000
+--------------------------------------------------------------------------------
+ VER MAS TARDE
+ - 20,000 Leagues Under the Sea (1916)      | Stuart Paton       | action ad...
+--------------------------------------------------------------------------------
+ RECOMENDADAS PARA USTED (5 de 41)
+ - A Modern Musketeer (1917)                | Allan Dwan         | adventure
+ - Across the Pacific (1926)                | Roy Del Ruth       | adventure
+ - Adventure (1925)                         | Victor Fleming     | adventure
+ - Carmen (1915)                            | Cecil B. DeMille   | adventure
+ - Don Juan (1926)                          | Alan Crosland      | adventure
+--------------------------------------------------------------------------------
+ 1. Buscar por palabra, frase o parte de una palabra
+ 2. Buscar por tag (director, reparto o genero)
+ 3. Ver mas tarde
+ 4. Mis Likes
+ 5. Todas las recomendadas
+ 0. Salir
+--------------------------------------------------------------------------------
+ Elija una opcion: 
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ RECOMENDADAS PARA USTED
+ 41 peliculas   |   Pagina 1 de 9
+--------------------------------------------------------------------------------
+ 1. A Modern Musketeer (1917)                | Allan Dwan         | adventure
+ 2. Across the Pacific (1926)                | Roy Del Ruth       | adventure
+ 3. Adventure (1925)                         | Victor Fleming     | adventure
+ 4. Carmen (1915)                            | Cecil B. DeMille   | adventure
+ 5. Don Juan (1926)                          | Alan Crosland      | adventure
 --------------------------------------------------------------------------------
  [1-5] Ver pelicula   [S] Siguientes 5   [M] Menu
  Elija una opcion: 
@@ -208,10 +343,62 @@ CSV limpio guardado en: data/movies_clean.csv
                             PLATAFORMA DE STREAMING
                     Busqueda de peliculas - Programacion III
 ================================================================================
- Peliculas disponibles: 34886
+ Peliculas disponibles: 1000
+--------------------------------------------------------------------------------
+ VER MAS TARDE
+ - 20,000 Leagues Under the Sea (1916)      | Stuart Paton       | action ad...
+--------------------------------------------------------------------------------
+ RECOMENDADAS PARA USTED (5 de 41)
+ - A Modern Musketeer (1917)                | Allan Dwan         | adventure
+ - Across the Pacific (1926)                | Roy Del Ruth       | adventure
+ - Adventure (1925)                         | Victor Fleming     | adventure
+ - Carmen (1915)                            | Cecil B. DeMille   | adventure
+ - Don Juan (1926)                          | Alan Crosland      | adventure
 --------------------------------------------------------------------------------
  1. Buscar por palabra, frase o parte de una palabra
  2. Buscar por tag (director, reparto o genero)
+ 3. Ver mas tarde
+ 4. Mis Likes
+ 5. Todas las recomendadas
+ 0. Salir
+--------------------------------------------------------------------------------
+ Elija una opcion:  Gracias por usar la plataforma. Hasta pronto.
+
+######## EJECUCION 2: se vuelve a abrir la app ########
+
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ Cargando la base de datos...
+
+ [1/3] Lectura del CSV ............... 34886 peliculas (2.15 s)
+ [2/3] Limpieza ...................... ya aplicada, se usa data/movies_clean.csv
+ Aviso: solo se usan las primeras 1000 peliculas (--limite).
+ [3/3] Construccion del arbol ........ #################### listo, 1000 peliculas (0.20 s)
+
+ Todo listo. Presione Enter para ir al menu principal...
+================================================================================
+                            PLATAFORMA DE STREAMING
+                    Busqueda de peliculas - Programacion III
+================================================================================
+ Peliculas disponibles: 1000
+--------------------------------------------------------------------------------
+ VER MAS TARDE
+ - 20,000 Leagues Under the Sea (1916)      | Stuart Paton       | action ad...
+--------------------------------------------------------------------------------
+ RECOMENDADAS PARA USTED (5 de 41)
+ - A Modern Musketeer (1917)                | Allan Dwan         | adventure
+ - Across the Pacific (1926)                | Roy Del Ruth       | adventure
+ - Adventure (1925)                         | Victor Fleming     | adventure
+ - Carmen (1915)                            | Cecil B. DeMille   | adventure
+ - Don Juan (1926)                          | Alan Crosland      | adventure
+--------------------------------------------------------------------------------
+ 1. Buscar por palabra, frase o parte de una palabra
+ 2. Buscar por tag (director, reparto o genero)
+ 3. Ver mas tarde
+ 4. Mis Likes
+ 5. Todas las recomendadas
  0. Salir
 --------------------------------------------------------------------------------
  Elija una opcion:  Gracias por usar la plataforma. Hasta pronto.
