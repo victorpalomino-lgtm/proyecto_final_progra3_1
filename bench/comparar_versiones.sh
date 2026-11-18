@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Compara el codigo BASE (por defecto origin/main, sin paralelismo) con el actual.
+# Compara el codigo BASE (por defecto 55a2ddc, el ultimo commit sin paralelismo) con el actual.
+# Antes la base por defecto era origin/main, pero desde que se fusiono el paralelismo
+# origin/main ya lo incluye y la comparacion dejaba de tener sentido.
 #
 # Protocolo para reducir el ruido sin tocar el sistema:
 #  - mediciones INTERCALADAS: en cada ronda se ejecuta una vez cada configuracion
@@ -10,8 +12,8 @@
 #    (cada 0.5 s) y despues de cada bloque.
 #
 # Uso (desde la raiz del repo):
-#   bench/comparar_versiones.sh motor  [--rondas 10] [--limite 0] [--hilos "1 2 4 12"] [--base origin/main] [--salida f.csv]
-#   bench/comparar_versiones.sh sesion [--rondas 10] [--base origin/main] [--salida f.csv]
+#   bench/comparar_versiones.sh motor  [--rondas 10] [--limite 0] [--hilos "1 2 4 12"] [--base 55a2ddc] [--salida f.csv]
+#   bench/comparar_versiones.sh sesion [--rondas 10] [--base 55a2ddc] [--salida f.csv]
 #   python3 bench/resumir.py f.csv [--rondas A-B]
 #
 # motor:  bench/BenchRonda.cpp (buildIndex + 8 consultas) compilado contra ambas versiones.
@@ -20,7 +22,7 @@
 set -euo pipefail
 
 modo=${1:-}; shift || true
-rondas=10; limite=0; hilos=""; base=origin/main; salida=""
+rondas=10; limite=0; hilos=""; base=55a2ddc; salida=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         --rondas) rondas=$2; shift 2 ;;
