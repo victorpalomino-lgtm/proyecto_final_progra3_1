@@ -42,6 +42,11 @@ Interfaz::Interfaz(const std::vector<RawMovie>& peliculas, const MovieTrie& arbo
     for (size_t id = 0; id < peliculas.size(); id++) {
         idPorClave.emplace(ListasUsuario::clave(peliculas[id]), id);
     }
+    listas.agregarObservador(&cacheRecomendadas);
+}
+
+Interfaz::~Interfaz() {
+    listas.eliminarObservador(&cacheRecomendadas);
 }
 
 //el archivo va en la carpeta data, aunque se ejecute desde la carpeta del build
@@ -71,13 +76,14 @@ std::vector<Resultado> Interfaz::resultadosDe(const std::vector<std::string>& cl
 }
 
 const std::vector<Resultado>& Interfaz::obtenerRecomendadas() {
-    if (!recomendadasAlDia) {
+    // La cache empieza invalida y ListasUsuario la invalida (Observer) al cambiar un Like.
+    if (!cacheRecomendadas.estaActualizada()) {
         std::vector<size_t> idsConLike;
         for (const Resultado& resultado : resultadosDe(listas.likes())) {
             idsConLike.push_back(resultado.id);
         }
         recomendadas = Recomendador::recomendar(peliculas, idsConLike);
-        recomendadasAlDia = true;
+        cacheRecomendadas.marcarActualizada();
     }
     return recomendadas;
 }
@@ -557,8 +563,7 @@ void Interfaz::mostrarDetalle(const RawMovie& pelicula) {
             return;
         }
         if (opcion == "l" || opcion == "L") {
-            bool agregada = listas.alternarLike(clave);
-            recomendadasAlDia = false; //cambian los likes, cambian las recomendadas
+            bool agregada = listas.alternarLike(clave); //notifica a cacheRecomendadas (Observer)
             aviso = agregada ? "Le dio Like a esta pelicula." : "Se quito el Like.";
         } else if (opcion == "v" || opcion == "V") {
             bool agregada = listas.alternarVerMasTarde(clave);

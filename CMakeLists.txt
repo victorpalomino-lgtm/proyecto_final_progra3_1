@@ -42,9 +42,12 @@ if(BUILD_TESTING)
             src/05_interfaz_integracion/ListasUsuario.cpp
             ${BUSQUEDA} ${UTILIDADES} ${LIMPIEZA} ${ARBOL})
     add_executable(paralelo_tests tests/ParaleloTests.cpp ${BUSQUEDA} ${UTILIDADES} ${LIMPIEZA} ${ARBOL})
+    add_executable(interfaz_flujo_tests tests/InterfazFlujoTests.cpp
+            ${INTERFAZ} ${BUSQUEDA} ${UTILIDADES} ${LIMPIEZA} ${ARBOL})
 
     foreach(test_target csv_reader_tests data_cleaner_tests csv_writer_tests interfaz_tests
-            indice_global_tests listas_usuario_tests patrones_3_4_tests paralelo_tests)
+            indice_global_tests listas_usuario_tests patrones_3_4_tests paralelo_tests
+            interfaz_flujo_tests)
         target_include_directories(${test_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
         add_test(NAME ${test_target} COMMAND ${test_target})
     endforeach()

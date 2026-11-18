@@ -5,6 +5,7 @@
 #include <vector>
 #include "comun/RawMovie.h"
 #include "05_interfaz_integracion/ListasUsuario.h"
+#include "05_interfaz_integracion/ObserverLista.h"
 #include "03_arbol_insercion/MovieTrie(arbol).h"
 #include "03_arbol_insercion/IndiceGlobal.h"
 #include "04_busqueda/Busqueda.h"
@@ -19,7 +20,9 @@ private:
     ListasUsuario listas;
     std::unordered_map<std::string, size_t> idPorClave; //para ubicar en el vector las peliculas guardadas
     std::vector<Resultado> recomendadas;
-    bool recomendadasAlDia = false; //se vuelven a calcular solo si cambian los likes
+    // Patron Observer: ListasUsuario le avisa cada cambio y la cache se invalida cuando
+    // cambian los Likes, asi las recomendaciones se recalculan solo cuando hace falta.
+    CacheRecomendadorObserver cacheRecomendadas;
 
     void pantallaBusquedaTexto();
     void pantallaBusquedaTag();
@@ -43,6 +46,10 @@ public:
              const std::string& rutaListas = "");
     // Usa el Singleton IndiceGlobal, que ya debe estar construido
     Interfaz();
+    ~Interfaz();
+    // ListasUsuario guarda un puntero al observador de esta instancia: no se copia.
+    Interfaz(const Interfaz&) = delete;
+    Interfaz& operator=(const Interfaz&) = delete;
 
     // Menu principal
     void ejecutar();
