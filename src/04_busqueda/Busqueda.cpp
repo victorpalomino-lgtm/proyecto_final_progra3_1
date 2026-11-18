@@ -100,7 +100,8 @@ std::ostream& operator<<(std::ostream& os, const Resultado& resultado) {
 BusquedaTexto::BusquedaTexto(size_t hilos, size_t umbral) : hilos(hilos), umbral(umbral) {
 }
 
-// Trie: O(min(m,3) + candidatos), ademas de normalizacion, confirmacion y ordenamiento.
+// Trie: O(p * min(m,3) + candidatos) para p palabras, ademas de normalizacion,
+// confirmacion y ordenamiento.
 std::vector<Resultado> BusquedaTexto::ejecutar(const std::string& consulta, const MovieTrie& arbol,
                                                const std::vector<RawMovie>& peliculas) const {
     // Se usa la misma funcion que el arbol para que ambos comparen igual
@@ -111,8 +112,9 @@ std::vector<Resultado> BusquedaTexto::ejecutar(const std::string& consulta, cons
         return {};
     }
 
-    // La consulta completa debe aparecer de forma contigua en un campo.
-    const auto ids = arbol.searchSubstring(textoNormalizado);
+    // "y/o": basta con que aparezca una de las palabras. Con una sola palabra es lo mismo
+    // que buscar la consulta completa.
+    const auto ids = candidatosTexto(arbol, terminos);
 
     return procesarCandidatos(ids, hilos, umbral, [&](size_t id, std::vector<Resultado>& salida) {
         if (id >= peliculas.size()) {
@@ -120,9 +122,9 @@ std::vector<Resultado> BusquedaTexto::ejecutar(const std::string& consulta, cons
         }
         const RawMovie& pelicula = peliculas[id];
         // Cada campo se normaliza una sola vez y se reutiliza para verificar y puntuar.
+        // prioridadTexto devuelve 0 si no aparece ninguna palabra (falso positivo del arbol).
         CamposNormalizados campos = normalizarCampos(pelicula);
-        if (!algunCampoContiene(campos, textoNormalizado)) return;
-        const int prioridad = puntajeTexto(campos, textoNormalizado, terminos);
+        const int prioridad = prioridadTexto(campos, textoNormalizado, terminos);
         if (prioridad > 0) {
             Resultado resultado = crearResultado(id, pelicula, std::move(campos.titulo));
             resultado.prioridad = prioridad;

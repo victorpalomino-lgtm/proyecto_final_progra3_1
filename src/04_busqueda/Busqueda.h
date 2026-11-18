@@ -18,7 +18,10 @@
 //            mas que lo que se ahorra). Valores por defecto medidos con bench/Benchmark.cpp.
 // El arbol y las peliculas solo se leen, por eso no hacen falta locks.
 
-// Palabra, frase o parte de una palabra en cualquier campo que indexa el arbol
+// Palabra, frase o parte de una palabra en cualquier campo que indexa el arbol.
+// Una frase encuentra las peliculas con cualquiera de sus palabras ("y/o"); primero las
+// que tienen la frase contigua, luego las que tienen todas las palabras y despues el resto
+// (ver prioridadTexto en BusquedaComun.h).
 class BusquedaTexto : public EstrategiaBusqueda {
 private:
     size_t hilos;

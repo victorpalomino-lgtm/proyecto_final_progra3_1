@@ -313,7 +313,9 @@ void Interfaz::pantallaBusquedaTexto() {
     mostrarLinea('-');
     std::cout << " Puede escribir una palabra (ship), una frase (ghost ship)" << std::endl;
     std::cout << " o solo una parte de una palabra (bar)." << std::endl;
-    std::cout << " Las frases se buscan completas y en el mismo orden." << std::endl;
+    std::cout << " Una frase encuentra peliculas con cualquiera de sus palabras: primero" << std::endl;
+    std::cout << " las que tienen la frase completa, luego las que tienen todas las palabras" << std::endl;
+    std::cout << " y despues las que tienen solo algunas." << std::endl;
     std::cout << " Las sinopsis estan en ingles, por eso conviene buscar en ingles." << std::endl;
     std::cout << " Deje el texto vacio y presione Enter para volver al menu." << std::endl;
     mostrarLinea('-');
