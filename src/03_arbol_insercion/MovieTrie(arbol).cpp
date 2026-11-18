@@ -33,16 +33,6 @@ std::string MovieTrie::keyFromQuery(const std::string& text) {
     return text.substr(0, KEY_SIZE);
 }
 
-void MovieTrie::indexText(const std::string& text, size_t movieId) {
-    std::string cleanText = DataCleaner::normalizeForSearch(text);
-    if (cleanText.empty()) return;
-
-    // Indice liviano de subcadenas.
-    for (size_t i = 0; i < cleanText.size(); ++i) {
-        insertKey(cleanText.substr(i, KEY_SIZE), movieId);
-    }
-}
-
 namespace {
 
 constexpr size_t NUM_CAMPOS = 5;

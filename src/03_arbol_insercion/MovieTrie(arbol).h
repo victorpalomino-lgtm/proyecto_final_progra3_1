@@ -60,9 +60,6 @@ public:
     void buildIndex(const std::vector<RawMovie>& movies, size_t hilos = 0,
                     IObservadorIndexacion* observador = nullptr);
 
-    // Claves de subcadenas.
-    void indexText(const std::string& text, size_t movieId);
-
     // IDs candidatos para la busqueda.
     std::unordered_set<size_t> searchSubstring(const std::string& query) const;
 
