@@ -100,7 +100,7 @@ std::ostream& operator<<(std::ostream& os, const Resultado& resultado) {
 BusquedaTexto::BusquedaTexto(size_t hilos, size_t umbral) : hilos(hilos), umbral(umbral) {
 }
 
-// Trie: O(min(m, 8) + candidatos). Si m <= 8, el arbol devuelve coincidencias exactas (filtro unico).
+// Trie: O(min(m,3) + candidatos), ademas de normalizacion, confirmacion y ordenamiento.
 std::vector<Resultado> BusquedaTexto::ejecutar(const std::string& consulta, const MovieTrie& arbol,
                                                const std::vector<RawMovie>& peliculas) const {
     // Se usa la misma funcion que el arbol para que ambos comparen igual
@@ -114,9 +114,6 @@ std::vector<Resultado> BusquedaTexto::ejecutar(const std::string& consulta, cons
     // La consulta completa debe aparecer de forma contigua en un campo.
     const auto ids = arbol.searchSubstring(textoNormalizado);
 
-    // Si la consulta cabe completa en la profundidad del Trie (<= 8), no requiere segundo filtro.
-    const bool yaVerificadoPorArbol = (textoNormalizado.size() <= MovieTrie::maxKeySize());
-
     return procesarCandidatos(ids, hilos, umbral, [&](size_t id, std::vector<Resultado>& salida) {
         if (id >= peliculas.size()) {
             return;
@@ -124,7 +121,7 @@ std::vector<Resultado> BusquedaTexto::ejecutar(const std::string& consulta, cons
         const RawMovie& pelicula = peliculas[id];
         // Cada campo se normaliza una sola vez y se reutiliza para verificar y puntuar.
         CamposNormalizados campos = normalizarCampos(pelicula);
-        if (!yaVerificadoPorArbol && !algunCampoContiene(campos, textoNormalizado)) return;
+        if (!algunCampoContiene(campos, textoNormalizado)) return;
         const int prioridad = puntajeTexto(campos, textoNormalizado, terminos);
         if (prioridad > 0) {
             Resultado resultado = crearResultado(id, pelicula, std::move(campos.titulo));
