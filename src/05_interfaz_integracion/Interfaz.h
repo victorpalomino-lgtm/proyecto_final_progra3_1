@@ -1,7 +1,10 @@
 #pragma once
 
+#include <functional>
+#include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include "comun/RawMovie.h"
 #include "05_interfaz_integracion/ListasUsuario.h"
@@ -24,11 +27,17 @@ private:
     // cambian los Likes, asi las recomendaciones se recalculan solo cuando hace falta.
     CacheRecomendadorObserver cacheRecomendadas;
 
+    using FabricaEstrategia = std::function<std::unique_ptr<EstrategiaBusqueda>()>;
+
     void pantallaBusquedaTexto();
     void pantallaBusquedaTag();
-    void mostrarResultados(const std::string& consulta); // usa la estrategia activa del buscador
-    void mostrarLista(const std::string& titulo, const std::vector<Resultado>& resultados,
-                      const std::string& tiempo);
+    // Busca con la estrategia que crea "fabrica"; si el usuario lo pide, la envuelve en el
+    // Decorator FiltroExcluirClavesBusqueda para ocultar las peliculas ya guardadas.
+    void mostrarResultados(const std::string& consulta, const FabricaEstrategia& fabrica);
+    // Devuelve true si el usuario pidio alternar el filtro de guardadas ([X]).
+    bool mostrarLista(const std::string& titulo, const std::vector<Resultado>& resultados,
+                      const std::string& tiempo, bool esBusqueda = false, bool filtroActivo = false);
+    std::unordered_set<std::string> clavesGuardadas() const;
     void pantallaLista(const std::string& titulo, const std::vector<Resultado>& resultados,
                        const std::string& vacio);
     void mostrarResumen(const std::string& titulo, const std::vector<Resultado>& resultados,
