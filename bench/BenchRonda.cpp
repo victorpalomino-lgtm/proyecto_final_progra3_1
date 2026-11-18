@@ -1,14 +1,18 @@
-// Una "ronda" de medicion: construye el indice una vez y ejecuta las 8 consultas del
+// Una "ronda" de medicion: construye el indice una vez y ejecuta las 9 consultas del
 // benchmark. Lo usa bench/comparar_versiones.sh, que lo compila dos veces:
-//   - contra el codigo BASE (por ejemplo origin/main, sin paralelismo), y
+//   - contra el codigo BASE (por defecto 55a2ddc, sin paralelismo), y
 //   - contra el codigo actual con -DCON_HILOS (acepta --hilos N).
 // Solo usa la API comun a ambas versiones (MovieTrie::buildIndex(movies),
 // BusquedaTexto(), BusquedaTag(campo)), asi la base es el codigo original real.
 //
 // Salida (una metrica por linea, "clave valor"), para que el script la procese:
 //   build_ms, hwm_build_mb, q_<consulta>_ms, q_<consulta>_n, q_<consulta>_chk
-// chk es un hash del orden de (id, puntaje) de los resultados: si coincide entre
-// versiones, los resultados son identicos.
+// chk es un hash del orden de los ids de los resultados: si coincide entre versiones,
+// devuelven las mismas peliculas en el mismo orden. No incluye la prioridad porque desde
+// la busqueda "y/o" la prioridad suma el nivel (palabras encontradas x 1 000 000): cambia
+// su valor, pero no el orden de una busqueda de una sola palabra.
+// Las frases ("ghost ship", "the ship") NO coinciden con la base, a proposito: la base
+// exige la frase contigua y la version actual busca "y/o".
 //
 // Uso: bench_ronda [--limite N] [--hilos N] [--datos ruta.csv]
 
@@ -57,8 +61,7 @@ uint64_t hashResultados(const std::vector<Resultado>& resultados) {
         }
     };
     for (const Resultado& r : resultados) {
-        mezclar(r.id);
-        mezclar(static_cast<uint64_t>(static_cast<int64_t>(r.prioridad)));
+        mezclar(r.id); // solo el orden de los ids: la escala de la prioridad cambio con "y/o"
     }
     return h;
 }
@@ -118,7 +121,7 @@ int main(int argc, char* argv[]) {
     std::cout << "hwm_build_mb " << leerStatusMb("VmHWM") << "\n";
 
     const std::vector<Consulta> consultas = {
-        {"ghost_ship", "ghost ship", 0}, {"the", "the", 0}, {"love", "love", 0}, {"ar", "ar", 0},
+        {"ghost_ship", "ghost ship", 0}, {"the_ship", "the ship", 0}, {"the", "the", 0}, {"love", "love", 0}, {"ar", "ar", 0},
         {"a", "a", 0}, {"dir_spielberg", "spielberg", 1}, {"rep_john", "john", 2}, {"gen_drama", "drama", 3},
     };
     for (const Consulta& c : consultas) {
