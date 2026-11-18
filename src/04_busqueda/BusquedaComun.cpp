@@ -1,6 +1,7 @@
 #include "04_busqueda/BusquedaComun.h"
 #include "02_limpieza_normalizacion/DataCleaner.h"
 
+#include <algorithm>
 #include <sstream>
 #include <utility>
 
@@ -56,12 +57,6 @@ CamposNormalizados normalizarCampos(const RawMovie& pelicula) {
     return campos;
 }
 
-bool algunCampoContiene(const CamposNormalizados& campos, const std::string& frase) {
-    return contiene(campos.titulo, frase) || contiene(campos.sinopsis, frase) ||
-           contiene(campos.director, frase) || contiene(campos.reparto, frase) ||
-           contiene(campos.genero, frase);
-}
-
 int puntajeTexto(const RawMovie& pelicula, const std::string& frase,
                  const std::vector<std::string>& terminos) {
     return puntajeTexto(normalizarCampos(pelicula), frase, terminos);
@@ -99,6 +94,40 @@ int puntajeTexto(const CamposNormalizados& campos, const std::string& frase,
         puntaje += 20;
     }
     return puntaje;
+}
+
+std::unordered_set<size_t> candidatosTexto(const MovieTrie& arbol, const std::vector<std::string>& terminos) {
+    std::unordered_set<size_t> candidatos;
+    for (const std::string& termino : terminos) {
+        const std::unordered_set<size_t> ids = arbol.searchSubstring(termino);
+        candidatos.insert(ids.begin(), ids.end());
+    }
+    return candidatos;
+}
+
+int prioridadTexto(const CamposNormalizados& campos, const std::string& frase,
+                   const std::vector<std::string>& terminos) {
+    auto aparece = [&](const std::string& texto) {
+        return contiene(campos.titulo, texto) || contiene(campos.sinopsis, texto) ||
+               contiene(campos.director, texto) || contiene(campos.reparto, texto) ||
+               contiene(campos.genero, texto);
+    };
+
+    int encontrados = 0;
+    for (const std::string& termino : terminos) {
+        if (aparece(termino)) {
+            encontrados++;
+        }
+    }
+    if (encontrados == 0) {
+        return 0;
+    }
+    int nivel = encontrados;
+    if (terminos.size() > 1 && aparece(frase)) {
+        nivel++; // frase completa y contigua
+    }
+    nivel = std::min(nivel, NIVEL_MAXIMO);
+    return nivel * PESO_NIVEL + puntajeTexto(campos, frase, terminos);
 }
 
 int puntajeCampo(const std::string& valor, const std::string& frase,

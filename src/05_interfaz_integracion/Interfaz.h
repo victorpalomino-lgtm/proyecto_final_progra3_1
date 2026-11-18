@@ -1,10 +1,14 @@
 #pragma once
 
+#include <functional>
+#include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include "comun/RawMovie.h"
 #include "05_interfaz_integracion/ListasUsuario.h"
+#include "05_interfaz_integracion/ObserverLista.h"
 #include "03_arbol_insercion/MovieTrie(arbol).h"
 #include "03_arbol_insercion/IndiceGlobal.h"
 #include "04_busqueda/Busqueda.h"
@@ -19,13 +23,21 @@ private:
     ListasUsuario listas;
     std::unordered_map<std::string, size_t> idPorClave; //para ubicar en el vector las peliculas guardadas
     std::vector<Resultado> recomendadas;
-    bool recomendadasAlDia = false; //se vuelven a calcular solo si cambian los likes
+    // Patron Observer: ListasUsuario le avisa cada cambio y la cache se invalida cuando
+    // cambian los Likes, asi las recomendaciones se recalculan solo cuando hace falta.
+    CacheRecomendadorObserver cacheRecomendadas;
+
+    using FabricaEstrategia = std::function<std::unique_ptr<EstrategiaBusqueda>()>;
 
     void pantallaBusquedaTexto();
     void pantallaBusquedaTag();
-    void mostrarResultados(const std::string& consulta); // usa la estrategia activa del buscador
-    void mostrarLista(const std::string& titulo, const std::vector<Resultado>& resultados,
-                      const std::string& tiempo);
+    // Busca con la estrategia que crea "fabrica"; si el usuario lo pide, la envuelve en el
+    // Decorator FiltroExcluirClavesBusqueda para ocultar las peliculas ya guardadas.
+    void mostrarResultados(const std::string& consulta, const FabricaEstrategia& fabrica);
+    // Devuelve true si el usuario pidio alternar el filtro de guardadas ([X]).
+    bool mostrarLista(const std::string& titulo, const std::vector<Resultado>& resultados,
+                      const std::string& tiempo, bool esBusqueda = false, bool filtroActivo = false);
+    std::unordered_set<std::string> clavesGuardadas() const;
     void pantallaLista(const std::string& titulo, const std::vector<Resultado>& resultados,
                        const std::string& vacio);
     void mostrarResumen(const std::string& titulo, const std::vector<Resultado>& resultados,
@@ -43,6 +55,10 @@ public:
              const std::string& rutaListas = "");
     // Usa el Singleton IndiceGlobal, que ya debe estar construido
     Interfaz();
+    ~Interfaz();
+    // ListasUsuario guarda un puntero al observador de esta instancia: no se copia.
+    Interfaz(const Interfaz&) = delete;
+    Interfaz& operator=(const Interfaz&) = delete;
 
     // Menu principal
     void ejecutar();

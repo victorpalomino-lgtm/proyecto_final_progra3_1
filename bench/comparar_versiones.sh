@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Compara el codigo BASE (por defecto origin/main, sin paralelismo) con el actual.
+# Compara el codigo BASE (por defecto 55a2ddc, el ultimo commit sin paralelismo) con el actual.
+# Antes la base por defecto era origin/main, pero desde que se fusiono el paralelismo
+# origin/main ya lo incluye y la comparacion dejaba de tener sentido.
 #
 # Protocolo para reducir el ruido sin tocar el sistema:
 #  - mediciones INTERCALADAS: en cada ronda se ejecuta una vez cada configuracion
@@ -10,17 +12,22 @@
 #    (cada 0.5 s) y despues de cada bloque.
 #
 # Uso (desde la raiz del repo):
-#   bench/comparar_versiones.sh motor  [--rondas 10] [--limite 0] [--hilos "1 2 4 12"] [--base origin/main] [--salida f.csv]
-#   bench/comparar_versiones.sh sesion [--rondas 10] [--base origin/main] [--salida f.csv]
+#   bench/comparar_versiones.sh motor  [--rondas 10] [--limite 0] [--hilos "1 2 4 12"] [--base 55a2ddc] [--salida f.csv]
+#   bench/comparar_versiones.sh sesion [--rondas 10] [--base 55a2ddc] [--salida f.csv]
 #   python3 bench/resumir.py f.csv [--rondas A-B]
 #
-# motor:  bench/BenchRonda.cpp (buildIndex + 8 consultas) compilado contra ambas versiones.
+# motor:  bench/BenchRonda.cpp (buildIndex + 9 consultas) compilado contra ambas versiones.
 # sesion: la app completa con la entrada bench/sesion_entrada.txt (11 consultas con
 #         paginacion); mide el tiempo total y verifica que la salida sea identica.
+#         Desde la busqueda "y/o" (f56ac2f) una frase de varias palabras devuelve otros
+#         resultados que en la base, a proposito. Por eso sesion_entrada.txt solo usa
+#         consultas cuyo resultado no cambio: palabras sueltas, sub-palabras y tags (antes
+#         tenia "love story"). Ademas, el filtro ignora el texto de ayuda de la pantalla
+#         de busqueda, que tambien cambio (antes: "Las frases se buscan completas...").
 set -euo pipefail
 
 modo=${1:-}; shift || true
-rondas=10; limite=0; hilos=""; base=origin/main; salida=""
+rondas=10; limite=0; hilos=""; base=55a2ddc; salida=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         --rondas) rondas=$2; shift 2 ;;
@@ -106,7 +113,9 @@ else
     "$CMAKE" --build "$tmp/build-actual" --target proyecto_progra3_1 -j"$(nproc)" > /dev/null
     filtrar() { # se ignoran solo tiempos y la linea de la barra de progreso
         sed -E -e 's/\([0-9.]+ ?(ms|s)[^)]*\)/(T)/g' -e 's/encontradas? en [^|]*\|/encontradas en T |/; s/encontrada en .*$/encontrada en T/' \
-               -e 's/^( \[3\/3\] Construccion del arbol \.*) .*$/\1 <progreso>/' "$1"
+               -e 's/^( \[3\/3\] Construccion del arbol \.*) .*$/\1 <progreso>/' \
+               -e '/Las frases se buscan completas/d; /Una frase encuentra peliculas/d' \
+               -e '/las que tienen la frase completa, luego/d; /y despues las que tienen solo algunas/d' "$1"
     }
     for ((r = 0; r < rondas; r++)); do
         orden=(base actual); ((r % 2)) && orden=(actual base)

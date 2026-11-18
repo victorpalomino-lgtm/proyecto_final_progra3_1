@@ -2,8 +2,8 @@
 //
 // - El indice paralelo es identico (nodo por nodo) al secuencial con 1, 2, 4 y mas hilos
 //   que nucleos.
-// - La busqueda paralela devuelve lo mismo que la secuencial y que el algoritmo anterior
-//   (IDs, puntajes y orden), por encima y por debajo del umbral.
+// - La busqueda paralela devuelve lo mismo que la secuencial y que una implementacion de
+//   referencia de la busqueda "y/o" (IDs, puntajes y orden), por encima y por debajo del umbral.
 // - El observador de indexacion se notifica desde un solo hilo, con avance monotono, y
 //   termina en total/total.
 // - Casos con muy pocas peliculas (0, 1 y menos que el numero de hilos).
@@ -22,6 +22,7 @@
 #include <filesystem>
 #include <iostream>
 #include <memory>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -106,28 +107,39 @@ bool mismosResultados(const std::vector<Resultado>& a, const std::vector<Resulta
     return true;
 }
 
-// Algoritmo de busqueda por texto ANTERIOR (normaliza en cada etapa), como referencia.
-std::vector<Resultado> textoAnterior(const std::string& consulta, const MovieTrie& arbol,
-                                     const std::vector<RawMovie>& peliculas) {
+// Referencia de la busqueda por texto "y/o", escrita aparte del codigo de la app: une los
+// candidatos de cada palabra, normaliza los campos en cada etapa y calcula el nivel
+// (palabras encontradas, +1 por la frase contigua) sin usar prioridadTexto.
+std::vector<Resultado> textoReferencia(const std::string& consulta, const MovieTrie& arbol,
+                                       const std::vector<RawMovie>& peliculas) {
     using namespace busqueda_interna;
     const std::string q = DataCleaner::normalizeForSearch(consulta);
     std::vector<Resultado> resultados;
     const auto terminos = separarTerminos(q);
     if (terminos.empty()) return resultados;
-    for (size_t id : arbol.searchSubstring(q)) {
+
+    std::set<size_t> candidatos;
+    for (const std::string& t : terminos) {
+        for (size_t id : arbol.searchSubstring(t)) candidatos.insert(id);
+    }
+    for (size_t id : candidatos) {
         if (id >= peliculas.size()) continue;
         const RawMovie& p = peliculas[id];
-        bool coincide = false;
-        for (const auto* campo : {&p.title, &p.plot, &p.director, &p.cast, &p.genre}) {
-            if (contiene(DataCleaner::normalizeForSearch(*campo), q)) {
-                coincide = true;
-                break;
+        auto aparece = [&](const std::string& texto) {
+            for (const auto* campo : {&p.title, &p.plot, &p.director, &p.cast, &p.genre}) {
+                if (contiene(DataCleaner::normalizeForSearch(*campo), texto)) return true;
             }
+            return false;
+        };
+        int nivel = 0;
+        for (const std::string& t : terminos) {
+            if (aparece(t)) ++nivel;
         }
-        if (!coincide) continue;
+        if (nivel == 0) continue;
+        if (terminos.size() > 1 && aparece(q)) ++nivel;
         Resultado r = crearResultado(id, p);
-        r.prioridad = puntajeTexto(p, q, terminos);
-        if (r.prioridad > 0) resultados.push_back(r);
+        r.prioridad = nivel * PESO_NIVEL + puntajeTexto(p, q, terminos);
+        resultados.push_back(r);
     }
     std::sort(resultados.begin(), resultados.end());
     return resultados;
@@ -182,11 +194,12 @@ void pruebaBusquedaIdentica(const std::vector<RawMovie>& peliculas, const std::s
     const size_t muchos = nucleos() * 2 + 3;
 
     // Frecuentes (por encima del umbral), raras (por debajo) y sin resultados.
-    for (const std::string q : {"the", "a", "ar", "love", "ghost ship", "harbor", "ñandú",
+    for (const std::string q : {"the", "a", "ar", "love", "ghost ship", "ship ghost", "love war",
+                                "the harbor night", "ghost zzzz", "harbor", "ñandú",
                                 "café", "x-ray", "zzzz", "  ", ""}) {
-        const auto esperado = textoAnterior(q, arbol, peliculas);
+        const auto esperado = textoReferencia(q, arbol, peliculas);
         const auto uno = BusquedaTexto(1).ejecutar(q, arbol, peliculas);
-        comprobar(mismosResultados(esperado, uno), nombre + ": texto \"" + q + "\" 1 hilo = anterior");
+        comprobar(mismosResultados(esperado, uno), nombre + ": texto \"" + q + "\" 1 hilo = referencia");
         for (size_t hilos : {size_t{2}, size_t{4}, muchos}) {
             // Umbral por defecto y umbral 0 (fuerza el camino paralelo aunque haya pocos candidatos)
             const auto porDefecto = BusquedaTexto(hilos).ejecutar(q, arbol, peliculas);

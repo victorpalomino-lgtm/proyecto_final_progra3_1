@@ -1,7 +1,9 @@
-#include <cassert>
 #include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "03_arbol_insercion/MovieTrie(arbol).h"
@@ -10,6 +12,17 @@
 #include "04_busqueda/DecoradorBusqueda.h"
 #include "05_interfaz_integracion/ListasUsuario.h"
 #include "05_interfaz_integracion/ObserverLista.h"
+
+// assert() desaparece con NDEBUG, y CMake compila en Release con -DNDEBUG: la prueba no
+// verificaba nada. VERIFICAR comprueba siempre y, si falla, muestra donde y termina con 1.
+#define VERIFICAR(condicion)                                                              \
+    do {                                                                                   \
+        if (!(condicion)) {                                                                \
+            std::cerr << __FILE__ << ":" << __LINE__ << ": fallo VERIFICAR(" #condicion ")" \
+                      << std::endl;                                                        \
+            std::exit(1);                                                                  \
+        }                                                                                  \
+    } while (false)
 
 namespace {
 
@@ -32,14 +45,14 @@ void probarDecorator() {
     //Busqueda base sin decorar: matrix devuelve las 3 entregas
     buscador.setEstrategia(std::make_unique<BusquedaTexto>());
     auto base = buscador.buscar("matrix");
-    assert(base.size() == 3);
+    VERIFICAR(base.size() == 3);
 
     //Decorador simple: filtrar por rango de anios [1995, 2005] -> quedan 2
     auto porAnio = std::make_unique<FiltroAnioBusqueda>(
         std::make_unique<BusquedaTexto>(), 1995, 2005);
     buscador.setEstrategia(std::move(porAnio));
     auto resAnio= buscador.buscar("matrix");
-    assert(resAnio.size()==2);
+    VERIFICAR(resAnio.size()==2);
 
     //Decoradores apilados: BusquedaTexto -> FiltroAnio [1995, 2025] -> Excluir Matrix (1999) -> Top 1
     std::unordered_set<std::string> excluidas= {ListasUsuario::clave(peliculas[0])};
@@ -52,13 +65,13 @@ void probarDecorator() {
 
     buscador.setEstrategia(std::move(decorada));
     auto resFinal = buscador.buscar("matrix");
-    assert(resFinal.size()==1);
-    assert(resFinal[0].pelicula->title!= "Matrix");
+    VERIFICAR(resFinal.size()==1);
+    VERIFICAR(resFinal[0].pelicula->title!= "Matrix");
 
     std::string desc = buscador.descripcion("matrix");
-    assert(desc.find("[Anio: 1995-2025]")!= std::string::npos);
-    assert(desc.find("[Sin vistas]")!= std::string::npos);
-    assert(desc.find("[Top 1]")!= std::string::npos);
+    VERIFICAR(desc.find("[Anio: 1995-2025]")!= std::string::npos);
+    VERIFICAR(desc.find("[Sin vistas]")!= std::string::npos);
+    VERIFICAR(desc.find("[Top 1]")!= std::string::npos);
 }
 
 void probarObserver() {
@@ -73,28 +86,28 @@ void probarObserver() {
     listas.agregarObservador(&auditorObs);
 
     cacheObs.marcarActualizada();
-    assert(cacheObs.estaActualizada());
+    VERIFICAR(cacheObs.estaActualizada());
 
     RawMovie m1{"1999", "Matrix", "Sci-Fi", "Wachowski", "Keanu", "Action", "http://1", "Plot"};
     std::string k1= ListasUsuario::clave(m1);
 
     // Agregar Like invalida cache y registra en auditoria
     listas.alternarLike(k1);
-    assert(!cacheObs.estaActualizada());
-    assert(cacheObs.totalInvalidaciones()== 1);
-    assert(auditorObs.historialEventos().size()== 1);
+    VERIFICAR(!cacheObs.estaActualizada());
+    VERIFICAR(cacheObs.totalInvalidaciones()== 1);
+    VERIFICAR(auditorObs.historialEventos().size()== 1);
 
     // Agregar Ver mas tarde NO invalida cache de recomendaciones, pero SI audita
     cacheObs.marcarActualizada();
     listas.alternarVerMasTarde(k1);
-    assert(cacheObs.estaActualizada());
-    assert(auditorObs.historialEventos().size()== 2);
+    VERIFICAR(cacheObs.estaActualizada());
+    VERIFICAR(auditorObs.historialEventos().size()== 2);
 
     // Desuscribir observador
     listas.eliminarObservador(&auditorObs);
     listas.alternarLike(k1); // quita Like
-    assert(cacheObs.totalInvalidaciones()== 2);
-    assert(auditorObs.historialEventos().size()== 2);
+    VERIFICAR(cacheObs.totalInvalidaciones()== 2);
+    VERIFICAR(auditorObs.historialEventos().size()== 2);
 
     std::remove(rutaTmp.c_str());
 }

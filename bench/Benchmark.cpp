@@ -5,7 +5,7 @@
 //             hilos pedidos. Con --verificar compara cada arbol con el secuencial nodo por
 //             nodo. Tambien mide el costo de que cada hilo escanee todas las claves.
 //   busqueda  Tiempo promedio por consulta en tres versiones:
-//               base  = replica exacta del codigo anterior (normaliza en cada etapa)
+//               base  = replica del algoritmo "y/o" que normaliza en cada etapa (sin la normalizacion unica)
 //               norm1 = codigo actual con 1 hilo (normalizacion unica)
 //               hN    = codigo actual con N hilos
 //             y verifica que todas devuelven exactamente lo mismo (id, puntaje y orden).
@@ -111,7 +111,7 @@ std::vector<Resultado> busquedaTextoBase(const std::string& consulta, const Movi
     if (terminos.empty()) return resultados;
 
     t = Reloj::now();
-    const auto ids = arbol.searchSubstring(textoNormalizado);
+    const auto ids = candidatosTexto(arbol, terminos); // "y/o": union por palabra
     if (f) f->recorridoTrie += msDesde(t);
 
     for (size_t id : ids) {
@@ -119,20 +119,26 @@ std::vector<Resultado> busquedaTextoBase(const std::string& consulta, const Movi
         Reloj::time_point tv;
         if (f) tv = Reloj::now();
         const auto& pelicula = peliculas[id];
-        bool coincide = false;
-        for (const auto* campo : {&pelicula.title, &pelicula.plot, &pelicula.director,
-                                  &pelicula.cast, &pelicula.genre}) {
-            if (contiene(DataCleaner::normalizeForSearch(*campo), textoNormalizado)) {
-                coincide = true;
-                break;
+        // Verificacion: cuantas palabras aparecen (normalizando cada campo en cada etapa).
+        auto aparece = [&](const std::string& texto) {
+            for (const auto* campo : {&pelicula.title, &pelicula.plot, &pelicula.director,
+                                      &pelicula.cast, &pelicula.genre}) {
+                if (contiene(DataCleaner::normalizeForSearch(*campo), texto)) return true;
             }
+            return false;
+        };
+        int nivel = 0;
+        for (const std::string& termino : terminos) {
+            if (aparece(termino)) ++nivel;
         }
+        if (nivel > 0 && terminos.size() > 1 && aparece(textoNormalizado)) ++nivel;
         if (f) f->verificacion += msDesde(tv);
-        if (!coincide) continue;
+        if (nivel == 0) continue;
         if (f) tv = Reloj::now();
         Resultado resultado = crearResultado(id, peliculas[id]);
-        resultado.prioridad = puntajeTexto(peliculas[id], textoNormalizado, terminos);
-        if (resultado.prioridad > 0) resultados.push_back(resultado);
+        resultado.prioridad = std::min(nivel, NIVEL_MAXIMO) * PESO_NIVEL +
+                              puntajeTexto(peliculas[id], textoNormalizado, terminos);
+        resultados.push_back(resultado);
         if (f) f->puntaje += msDesde(tv);
     }
 
@@ -332,7 +338,10 @@ void benchBusqueda(const Opciones& op, const MovieTrie& arbol, const std::vector
     std::cout << std::setw(10) << "mejor x" << "  identico\n";
 
     for (const auto& c : consultasBench()) {
-        const size_t candidatos = arbol.searchSubstring(c.texto).size();
+        const size_t candidatos = c.tipo == "texto"
+            ? busqueda_interna::candidatosTexto(arbol, busqueda_interna::separarTerminos(
+                  DataCleaner::normalizeForSearch(c.texto))).size()
+            : arbol.searchSubstring(c.texto).size();
         auto ejecutarBase = [&]() {
             return c.tipo == "texto" ? busquedaTextoBase(c.texto, arbol, peliculas)
                                      : busquedaTagBase(c.campo, c.texto, arbol, peliculas);

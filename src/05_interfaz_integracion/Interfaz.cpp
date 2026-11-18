@@ -1,5 +1,6 @@
 #include "05_interfaz_integracion/Interfaz.h"
 #include "05_interfaz_integracion/Recomendador.h"
+#include "04_busqueda/DecoradorBusqueda.h"
 #include "comun/Utilidades.h"
 
 #include <algorithm>
@@ -42,6 +43,11 @@ Interfaz::Interfaz(const std::vector<RawMovie>& peliculas, const MovieTrie& arbo
     for (size_t id = 0; id < peliculas.size(); id++) {
         idPorClave.emplace(ListasUsuario::clave(peliculas[id]), id);
     }
+    listas.agregarObservador(&cacheRecomendadas);
+}
+
+Interfaz::~Interfaz() {
+    listas.eliminarObservador(&cacheRecomendadas);
 }
 
 //el archivo va en la carpeta data, aunque se ejecute desde la carpeta del build
@@ -71,13 +77,14 @@ std::vector<Resultado> Interfaz::resultadosDe(const std::vector<std::string>& cl
 }
 
 const std::vector<Resultado>& Interfaz::obtenerRecomendadas() {
-    if (!recomendadasAlDia) {
+    // La cache empieza invalida y ListasUsuario la invalida (Observer) al cambiar un Like.
+    if (!cacheRecomendadas.estaActualizada()) {
         std::vector<size_t> idsConLike;
         for (const Resultado& resultado : resultadosDe(listas.likes())) {
             idsConLike.push_back(resultado.id);
         }
         recomendadas = Recomendador::recomendar(peliculas, idsConLike);
-        recomendadasAlDia = true;
+        cacheRecomendadas.marcarActualizada();
     }
     return recomendadas;
 }
@@ -313,7 +320,9 @@ void Interfaz::pantallaBusquedaTexto() {
     mostrarLinea('-');
     std::cout << " Puede escribir una palabra (ship), una frase (ghost ship)" << std::endl;
     std::cout << " o solo una parte de una palabra (bar)." << std::endl;
-    std::cout << " Las frases se buscan completas y en el mismo orden." << std::endl;
+    std::cout << " Una frase encuentra peliculas con cualquiera de sus palabras: primero" << std::endl;
+    std::cout << " las que tienen la frase completa, luego las que tienen todas las palabras" << std::endl;
+    std::cout << " y despues las que tienen solo algunas." << std::endl;
     std::cout << " Las sinopsis estan en ingles, por eso conviene buscar en ingles." << std::endl;
     std::cout << " Deje el texto vacio y presione Enter para volver al menu." << std::endl;
     mostrarLinea('-');
@@ -322,8 +331,7 @@ void Interfaz::pantallaBusquedaTexto() {
     if (!leerLinea(" Buscar: ", texto) || texto.empty()) {
         return;
     }
-    buscador.setEstrategia(std::make_unique<BusquedaTexto>());
-    mostrarResultados(texto);
+    mostrarResultados(texto, []() { return std::make_unique<BusquedaTexto>(); });
 }
 
 void Interfaz::pantallaBusquedaTag() {
@@ -374,30 +382,60 @@ void Interfaz::pantallaBusquedaTag() {
             continue;
         }
 
-        buscador.setEstrategia(std::make_unique<BusquedaTag>(campo));
-        mostrarResultados(texto);
+        mostrarResultados(texto, [campo]() { return std::make_unique<BusquedaTag>(campo); });
         return;
     }
 }
 
-void Interfaz::mostrarResultados(const std::string& consulta) {
-    Cronometro reloj;
-    std::vector<Resultado> resultados = buscador.buscar(consulta);
-    std::string tiempo = reloj.texto();
-    const std::string descripcion = buscador.descripcion(consulta);
+//claves de las peliculas con Like o en Ver mas tarde
+std::unordered_set<std::string> Interfaz::clavesGuardadas() const {
+    std::unordered_set<std::string> claves(listas.likes().begin(), listas.likes().end());
+    claves.insert(listas.verMasTarde().begin(), listas.verMasTarde().end());
+    return claves;
+}
 
-    if (resultados.empty()) {
-        std::cout << std::endl;
-        std::cout << " No se encontraron peliculas para " << descripcion << "." << std::endl;
-        pausa(" Presione Enter para volver al menu...");
-        return;
+void Interfaz::mostrarResultados(const std::string& consulta, const FabricaEstrategia& fabrica) {
+    bool ocultarGuardadas = false; // por defecto se muestran todas
+    while (true) {
+        std::unique_ptr<EstrategiaBusqueda> estrategia = fabrica();
+        if (ocultarGuardadas) {
+            // Patron Decorator: la misma busqueda, envuelta en un filtro.
+            estrategia = std::make_unique<FiltroExcluirClavesBusqueda>(std::move(estrategia), clavesGuardadas(),
+                                                                       "guardadas");
+        }
+        buscador.setEstrategia(std::move(estrategia));
+
+        Cronometro reloj;
+        std::vector<Resultado> resultados = buscador.buscar(consulta);
+        std::string tiempo = reloj.texto();
+        const std::string descripcion = buscador.descripcion(consulta);
+
+        if (resultados.empty()) {
+            std::cout << std::endl;
+            if (ocultarGuardadas) {
+                // Todas estaban guardadas: se vuelve a mostrar la lista completa.
+                std::cout << " Todas las peliculas de " << descripcion << " ya estan guardadas." << std::endl;
+                pausa(" Presione Enter para ver la lista completa...");
+                ocultarGuardadas = false;
+                continue;
+            }
+            std::cout << " No se encontraron peliculas para " << descripcion << "." << std::endl;
+            pausa(" Presione Enter para volver al menu...");
+            return;
+        }
+        if (!mostrarLista("RESULTADOS PARA " + descripcion, resultados, tiempo, true, ocultarGuardadas)) {
+            return;
+        }
+        ocultarGuardadas = !ocultarGuardadas;
     }
-    mostrarLista("RESULTADOS PARA " + descripcion, resultados, tiempo);
 }
 
 //paginacion de 5 en 5, la usan la busqueda y las listas del usuario
-void Interfaz::mostrarLista(const std::string& titulo, const std::vector<Resultado>& resultados,
-                            const std::string& tiempo) {
+//esBusqueda: ofrece [X] para ocultar las guardadas, solo si el filtro esta activo o el
+//usuario tiene alguna pelicula guardada (si no, la pantalla queda igual que antes).
+//Devuelve true si se eligio [X].
+bool Interfaz::mostrarLista(const std::string& titulo, const std::vector<Resultado>& resultados,
+                            const std::string& tiempo, bool esBusqueda, bool filtroActivo) {
     size_t totalPaginas = (resultados.size() + POR_PAGINA - 1) / POR_PAGINA;
     size_t pagina = 0;
     std::string aviso;
@@ -441,6 +479,14 @@ void Interfaz::mostrarLista(const std::string& titulo, const std::vector<Resulta
         }
         opciones += "   [M] Menu";
         std::cout << opciones << std::endl;
+        // Se calcula en cada vuelta: puede dar Like desde el detalle de estos mismos resultados.
+        const bool ofrecerFiltro = esBusqueda &&
+            (filtroActivo || !listas.likes().empty() || !listas.verMasTarde().empty());
+        if (ofrecerFiltro) {
+            std::cout << (filtroActivo ? " [X] Mostrar tambien las guardadas"
+                                       : " [X] Ocultar las que tienen Like o estan en Ver mas tarde")
+                      << std::endl;
+        }
         if (!aviso.empty()) {
             std::cout << " " << aviso << std::endl;
             aviso = "";
@@ -448,10 +494,12 @@ void Interfaz::mostrarLista(const std::string& titulo, const std::vector<Resulta
 
         std::string opcion;
         if (!leerLinea(" Elija una opcion: ", opcion)) {
-            return;
+            return false;
         }
 
-        if (opcion == "s" || opcion == "S") {
+        if (ofrecerFiltro && (opcion == "x" || opcion == "X")) {
+            return true;
+        } else if (opcion == "s" || opcion == "S") {
             if (pagina + 1 < totalPaginas) {
                 pagina++;
             } else {
@@ -464,7 +512,7 @@ void Interfaz::mostrarLista(const std::string& titulo, const std::vector<Resulta
                 aviso = "Ya esta en la primera pagina.";
             }
         } else if (opcion == "m" || opcion == "M") {
-            return;
+            return false;
         } else {
             int numero = aNumero(opcion);
             if (numero >= 1 && numero <= (int)enPagina) {
@@ -555,8 +603,7 @@ void Interfaz::mostrarDetalle(const RawMovie& pelicula) {
             return;
         }
         if (opcion == "l" || opcion == "L") {
-            bool agregada = listas.alternarLike(clave);
-            recomendadasAlDia = false; //cambian los likes, cambian las recomendadas
+            bool agregada = listas.alternarLike(clave); //notifica a cacheRecomendadas (Observer)
             aviso = agregada ? "Le dio Like a esta pelicula." : "Se quito el Like.";
         } else if (opcion == "v" || opcion == "V") {
             bool agregada = listas.alternarVerMasTarde(clave);

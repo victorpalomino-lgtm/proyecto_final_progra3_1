@@ -92,6 +92,13 @@ int main(int argc, char* argv[]) {
             Interfaz::mostrarEtapa("[2/3] Limpieza", "ya aplicada, se usa " + cleanPath.string());
         } else {
             const auto csvPath = locateDataFile("data/wiki_movie_plots_deduped.csv");
+            if (!std::filesystem::exists(csvPath)) {
+                // El CSV original no esta en Git (pesa ~80 MB): hay que descargarlo.
+                std::cerr << "No se encontro data/wiki_movie_plots_deduped.csv (el CSV original no esta en Git).\n"
+                             "Descarguelo de https://www.kaggle.com/datasets/jrobischon/wikipedia-movie-plots\n"
+                             "y coloquelo en la carpeta data/ del proyecto (ver README)." << std::endl;
+                return 1;
+            }
             cleanPath = csvPath.parent_path() / "movies_clean.csv";
 
             movies = CSVReaderDiagnostic::processFile(csvPath.string(), report);

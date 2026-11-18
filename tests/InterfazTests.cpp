@@ -65,9 +65,13 @@ int main() {
                 barcos[2].pelicula->title == "Blue Sky", "Primero las que tienen el texto en el titulo");
         require(BusquedaTexto().ejecutar("SHIP", arbol, peliculas).size() == 3, "No distinguir mayusculas");
         require(BusquedaTexto().ejecutar("arb", arbol, peliculas).size() == 1, "Buscar parte de una palabra");
-        require(BusquedaTexto().ejecutar("ghost ship", arbol, peliculas).size() == 1, "Buscar una frase contigua");
-        require(BusquedaTexto().ejecutar("ghost pirates", arbol, peliculas).empty(),
-                "No aceptar palabras separadas como frase");
+        std::vector<Resultado> fantasma = BusquedaTexto().ejecutar("ghost ship", arbol, peliculas);
+        require(fantasma.size() == 3 && fantasma[0].pelicula->title == "Blue Sky",
+                "Frase y/o: primero la frase contigua, luego las que tienen solo una palabra");
+        std::vector<Resultado> separadas = BusquedaTexto().ejecutar("ghost pirates", arbol, peliculas);
+        require(separadas.size() == 2 && separadas[0].pelicula->title == "Another Ship" &&
+                separadas[1].pelicula->title == "Blue Sky",
+                "Frase y/o: palabras en peliculas distintas, empate ordenado por titulo");
         require(BusquedaTexto().ejecutar("zzz", arbol, peliculas).empty(), "Busqueda sin resultados");
         require(BusquedaTexto().ejecutar("ford", arbol, peliculas).size() == 2, "Texto en cualquier campo");
 
@@ -85,6 +89,46 @@ int main() {
         require(BusquedaTexto().ejecutar("shipwreck", arbol, peliculas).empty(), "Descartar falso positivo del trigrama ship");
         require(BusquedaTexto().ejecutar("   ", arbol, peliculas).empty(), "Consulta vacia");
         require(BusquedaTag(FieldType::CAST).ejecutar("tom nobody", arbol, peliculas).empty(), "Tag exige frase completa");
+        // ---------- Frase "y/o": niveles de prioridad ----------
+        {
+            std::vector<RawMovie> frases;
+            frases.push_back(crearPelicula("Night Voyage", "1950", "", "", "", "The ghost ship sails at dawn."));
+            frases.push_back(crearPelicula("Deep Water", "1960", "", "", "", "A ship carries a ghost across the sea."));
+            // Solo "ship", pero en el titulo: su puntaje (45) supera al de Deep Water (30).
+            frases.push_back(crearPelicula("Ship", "1970", "", "", "", "A ship."));
+            frases.push_back(crearPelicula("Ghost Town", "1980", "", "", "", "Empty streets."));
+            frases.push_back(crearPelicula("Silent", "1990", "", "", "", "Nothing here."));
+            MovieTrie arbolFrases;
+            arbolFrases.buildIndex(frases);
+
+            auto titulos = [](const std::vector<Resultado>& r) {
+                std::vector<std::string> t;
+                for (const Resultado& x : r) t.push_back(x.pelicula->title);
+                return t;
+            };
+            const std::vector<Resultado> uno = BusquedaTexto(1).ejecutar("ghost ship", arbolFrases, frases);
+            require(titulos(uno) == std::vector<std::string>{"Night Voyage", "Deep Water", "Ship", "Ghost Town"},
+                    "Frase y/o: contigua, luego ambas palabras, luego una sola (aunque tenga mas puntaje)");
+
+            const std::vector<Resultado> invertida = BusquedaTexto(1).ejecutar("ship ghost", arbolFrases, frases);
+            require(titulos(invertida) == std::vector<std::string>{"Deep Water", "Night Voyage", "Ship", "Ghost Town"},
+                    "Frase y/o: sin frase contigua, las de ambas palabras van primero y empatan por titulo");
+
+            // Determinista: mismo resultado repitiendo y con varios hilos (umbral 0 fuerza el camino paralelo)
+            for (size_t hilos : {size_t{2}, size_t{4}, size_t{8}}) {
+                const std::vector<Resultado> paralelo = BusquedaTexto(hilos, 0).ejecutar("ghost ship", arbolFrases, frases);
+                require(paralelo.size() == uno.size(), "Frase y/o en paralelo: mismo tamanio");
+                for (size_t i = 0; i < uno.size(); ++i) {
+                    require(paralelo[i].id == uno[i].id && paralelo[i].prioridad == uno[i].prioridad,
+                            "Frase y/o en paralelo: mismo orden y prioridad");
+                }
+            }
+            require(titulos(BusquedaTexto(1).ejecutar("ghost ship", arbolFrases, frases)) == titulos(uno),
+                    "Frase y/o: repetir la busqueda da el mismo orden");
+            require(BusquedaTexto().ejecutar("ghost zzz", arbolFrases, frases).size() == 3,
+                    "Frase y/o: una palabra inexistente no impide encontrar la otra");
+        }
+
         MovieTrie rebuilt;
         rebuilt.buildIndex(peliculas);
         rebuilt.buildIndex({peliculas.back()});

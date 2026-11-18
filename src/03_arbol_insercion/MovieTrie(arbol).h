@@ -33,7 +33,7 @@ struct TrieNode {
 class MovieTrie {
 private:
     TrieNode* root;
-    static constexpr size_t KEY_SIZE = 8;
+    static constexpr size_t KEY_SIZE = 3;
 
     // Clave corta para candidatos.
     void insertKey(const std::string& text, size_t movieId);
@@ -44,9 +44,6 @@ private:
                        IObservadorIndexacion* observador);
 
 public:
-    // Longitud maxima de clave indexada directamente en el Trie (8-gramas).
-    static constexpr size_t maxKeySize() { return KEY_SIZE; }
-
     // Por debajo de esta cantidad de peliculas se indexa en un solo hilo: crear hilos y
     // normalizar por adelantado no compensa (medido con bench/Benchmark.cpp).
     static constexpr size_t MIN_PELICULAS_PARALELO = 64;
@@ -62,9 +59,6 @@ public:
     // El arbol resultante es el mismo con cualquier numero de hilos.
     void buildIndex(const std::vector<RawMovie>& movies, size_t hilos = 0,
                     IObservadorIndexacion* observador = nullptr);
-
-    // Claves de subcadenas.
-    void indexText(const std::string& text, size_t movieId);
 
     // IDs candidatos para la busqueda.
     std::unordered_set<size_t> searchSubstring(const std::string& query) const;
