@@ -10,7 +10,6 @@ Aplicación en C++ para buscar películas por título, sinopsis, director, repar
 - Lescano Garamendi Juan Carlos Sebastian
 - Palomino Arcos Víctor Valentino
 - Valdiviezo Ortiz José Rodrigo
-- Jossue Caceres
 
 ## Organización
 
