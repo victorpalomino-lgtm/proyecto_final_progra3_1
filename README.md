@@ -27,7 +27,7 @@ Aplicación en C++ para buscar películas por título, sinopsis, director, repar
 
 ## Compilar y ejecutar
 
-Requisitos: CMake 4 o superior y un compilador compatible con C++20. Desde la raíz del proyecto:
+Requisitos: CMake 3.20 o superior (`ctest --test-dir` existe desde 3.20) y un compilador compatible con C++20 (probado con GCC 16.2 en Linux). No hay otras dependencias: solo la biblioteca estándar y los hilos del sistema (`Threads`). Desde la raíz del proyecto:
 
 ```sh
 cmake -S . -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
