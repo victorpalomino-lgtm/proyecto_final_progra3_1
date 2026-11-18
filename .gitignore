@@ -1,7 +1,10 @@
 cmake-build-debug/
 .idea/
 *.exe
+# CSV original (~78 MB): no se versiona. Va en data/ (ver README); tambien se ignora
+# una copia suelta en la raiz.
 data/wiki_movie_plots_deduped.csv
+/wiki_movie_plots_deduped.csv
 
 cmake-build-release/
 data/listas_usuario.txt

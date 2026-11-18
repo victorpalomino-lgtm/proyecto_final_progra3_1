@@ -38,7 +38,15 @@ ctest --test-dir cmake-build-release --output-on-failure
 
 `--limite 1000` construye el árbol con las primeras 1000 películas. Para usar todo el catálogo, quitar esa opción.
 
-Para repetir el diagnóstico y la limpieza, agregar `--rebuild-clean`. Requiere el archivo `data/wiki_movie_plots_deduped.csv`, que no está incluido en Git. Sin esa opción, se utiliza `data/movies_clean.csv` si está disponible.
+Sin opciones extra, la aplicación usa `data/movies_clean.csv` (el CSV ya limpio), que **sí está en Git**: un clon recién hecho arranca sin descargar nada.
+
+Para repetir el diagnóstico y la limpieza desde el CSV original, agregar `--rebuild-clean`. Ese CSV **no está en Git** (pesa ~78 MB):
+
+1. Descargar `wiki_movie_plots_deduped.csv` del dataset [Wikipedia Movie Plots](https://www.kaggle.com/datasets/jrobischon/wikipedia-movie-plots) de Kaggle (pide iniciar sesión).
+2. Colocarlo en `data/wiki_movie_plots_deduped.csv` (la carpeta `data/` de la raíz del proyecto; `.gitignore` ya lo excluye).
+3. Ejecutar `./cmake-build-release/proyecto_progra3_1 --rebuild-clean`. Se muestra el informe de diagnóstico y de limpieza, y se vuelve a escribir `data/movies_clean.csv`.
+
+Si el archivo no está, el programa indica de dónde descargarlo y dónde colocarlo.
 
 ## Paralelismo y rendimiento
 
