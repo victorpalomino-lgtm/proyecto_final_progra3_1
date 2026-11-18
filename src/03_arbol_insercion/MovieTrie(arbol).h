@@ -33,7 +33,7 @@ struct TrieNode {
 class MovieTrie {
 private:
     TrieNode* root;
-    static constexpr size_t KEY_SIZE = 3;
+    static constexpr size_t KEY_SIZE = 8;
 
     // Clave corta para candidatos.
     void insertKey(const std::string& text, size_t movieId);
@@ -44,6 +44,9 @@ private:
                        IObservadorIndexacion* observador);
 
 public:
+    // Longitud maxima de clave indexada directamente en el Trie (8-gramas).
+    static constexpr size_t maxKeySize() { return KEY_SIZE; }
+
     // Por debajo de esta cantidad de peliculas se indexa en un solo hilo: crear hilos y
     // normalizar por adelantado no compensa (medido con bench/Benchmark.cpp).
     static constexpr size_t MIN_PELICULAS_PARALELO = 64;
